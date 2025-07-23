@@ -208,6 +208,6 @@ def build_movinet_a0_cfg():
             "hidden_dim": 2048
         }
     }
-    # TODO: 使用 types.SimpleNamespace 来递归地将嵌套字典转换为对象，从而支持 . 访问方式, 需要注意多层的转换- DBUG 0718
+    # TODO: 使用 types.SimpleNamespace 来递归地将嵌套字典转换为对象，从而对象访问方式, 需要注意多层的转换- DBUG 0718
     return dict_to_namespace(cfg_dict)
 

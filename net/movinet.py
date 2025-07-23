@@ -700,7 +700,11 @@ class MoViNet(nn.Module):
         self.apply(self._clean_activation_buffers)
 
 
+
+
+
 if __name__ == '__main__':
+
     from cfg import build_movinet_a0_cfg
     movinet_a0_cfg = build_movinet_a0_cfg()
     print("movinet_a0_cfg==", movinet_a0_cfg)
