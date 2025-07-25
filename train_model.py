@@ -60,7 +60,7 @@ def train_model():
     optimizer = optim.AdamW(model.parameters(), lr=learning_rate, weight_decay=1e-4)
     scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min', patience=3)
 
-    # TensorBoard
+    # TensorBoard  # TODO 环境出现了问题, 需要额外新的py环境做隔离查看-0723
     writer = SummaryWriter(log_dir=log_dir)
 
     # 训练循环

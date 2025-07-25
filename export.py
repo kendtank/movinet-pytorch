@@ -9,7 +9,7 @@
 
 
 """
-ONNX 格式（用于部署在 GPU/CUDA）
+ONNX 格式
 TensorFlow Lite 格式（用于部署在边缘设备）
 """
 
@@ -35,7 +35,7 @@ def export_to_onnx(model, save_path='movinet.onnx'):
             'output': {}
         }
     )
-    print(f"✅ ONNX 模型已保存到 {save_path}")
+    print(f"ONNX 模型已保存到 {save_path}")
 
 
 def export_to_tflite(model, save_path='movinet.tflite'):
@@ -47,9 +47,9 @@ def export_to_tflite(model, save_path='movinet.tflite'):
     torch.jit.save(script_model, 'movinet_script.pt')
 
     # 使用 TorchScript 转换为 TFLite（需安装 torchscript2tflite）
-    # 这里仅提供伪代码示意
-    # 实际可使用转换工具或导出为 ONNX 再转 TFLite
-    print(f"✅ TFLite 模型已保存到 {save_path}")
+
+    # 常规做法是使用转换工具或导出为 ONNX 再转 TFLite # TODO
+    print(f"TFLite 模型已保存到 {save_path}")
 
 
 

@@ -36,7 +36,7 @@ class ToTensor:
 
 
 
-# 推荐数据增强组合
+# 数据增强组合 # TODO: 需要验证是否需要对帧做数据增强
 transform = transforms.Compose([
     transforms.ToPILImage(),
     transforms.RandomApply([

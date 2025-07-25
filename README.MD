@@ -4,9 +4,9 @@
 
 ---
 
-## 📌 项目特色
+## 📌 项目介绍
 
-* 🚀 使用 Google MoViNet 模型，轻量级、低延迟，适合边端设备部署
+* 🚀 使用 Google MoViNet 模型，轻量级、低延迟，适合边缘端侧设备部署
 * 🐱🐶 识别宠物是否在“拆家”
 * 🎥 支持任意长度视频推理（定长固定窗口处理）
 * 📦 提供完整训练和推理脚本
@@ -44,7 +44,7 @@ dataset/
 每段视频不定长度，每段视频帧数可变，命名自由，格式支持 `.mp4/.avi/.mov` 等。
 
 
-### 数据划分建议
+### 数据划分要求
 
 | 类型     | 示例数量 | 建议用途    |
 | ------ | ---- | ------- |
@@ -76,33 +76,26 @@ pip install tensorflow tensorflow-hub
 ## 🏋️‍♂️ 模型训练
 
 ```bash
-python train_model.py \
-  --data_root ./data \
-  --epochs 20 \
-  --batch_size 4 \
-  --num_classes 2 \
-  --checkpoint_dir ./checkpoints
+python train_model.py
 ```
 
-默认使用 32 帧 + 图像尺寸 172×172 (适配 MoViNet-A0)。
+默认使用 32 帧 + 图像尺寸 244×244 (MoViNet-A0也支持 128×128, 按照需求调整)。
 
 ---
 
 
 ## 🔍 模型推理
 
-推理脚本支持对任意视频段进行识别：
+推理脚本支持对任意视频段以及视频流地址进行视频分析：
 
 ```bash
-python infer.py \
-  --video ./test_video.mp4 \
-  --weights ./checkpoints/best_model.pth
+python inference.py
 ```
 
 
-输出示例：
+输出：
 ```
-[预测结果] 类别: mess（拆家） | 信心度: 0.91
+[clip][预测结果] 类别: mess（拆家） | 置信度: 0.91
 ```
 
 ---
@@ -110,9 +103,9 @@ python infer.py \
 ## 💡 推理逻辑说明
 
 1. 使用 OpenCV 读取视频并提取固定数量帧（默认 32 帧）
-2. 每帧 resize 为 172x172 并归一化处理
-3. 堆叠为 `[B, C, T, H, W]` 格式输入模型
-4. 输出分类结果（拆家 / 正常）和对应信心度
+2. 每帧 resize 为 244x244 并归一化处理
+3. 堆叠为 `[B, C, T, H, W]` 格式输入模型 (pytorch版本, tensorflow需要改变输入格式)
+4. 输出分类结果（拆家 / 正常）和对应置信度
 
 ---
 
@@ -120,7 +113,7 @@ python infer.py \
 
 ## 📦 模型导出（ONNX / tf-lite）
 
-可用于部署边端设备：
+可用于部署边端设备(待完善)：
 
 ```python
 torch.onnx.export(model, dummy_input, "model.onnx", opset_version=11)
@@ -130,11 +123,12 @@ torch.onnx.export(model, dummy_input, "model.onnx", opset_version=11)
 
 ## 🚧 TODO
 
-* [x] MoViNet 模型训练与推理流程
-* [x] 视频拆帧预处理支持
-* [ ] 流式推理（逐帧）
-* [ ] Streamlit Web UI 展示
-* [ ] Android / Jetson 移动部署适配
+* [✓] MoViNet 模型训练与推理流程
+* [✓] 视频拆帧预处理支持
+* [✓] 流式推理（逐帧）
+* [ ] 数据集调整
+* [ ] 集成视频流展示
+* [ ] 移动部署适配
 
 ---
 
@@ -146,17 +140,17 @@ torch.onnx.export(model, dummy_input, "model.onnx", opset_version=11)
 │   ├── train/
 │   └── val/
 ├── net/                    # MoViNet 模型定义
-    ├── cfg.py              # 模型配置参数
+│   ├── cfg.py              # 模型配置参数
 │   ├── modelA0_statedict   # 模型权重
-    ├── movinet.py          # MoViNet_A0 模型加载
-    └── transforms.py       # 数据预处理
+│   ├── movinet.py          # MoViNet_A0 模型加载
+│   └── transforms.py       # 数据预处理
 ├── runs/                   # 模型训练日志
 ├── export.py               # 模型导出
 ├── inference.py            # 视频推理脚本
 ├── checkpoints/            # 训练输出模型权重
 ├── load_dataset_with_video.py # 加载视频数据集
-└── README.md                
-├── train_model.py          # 模型训练脚本
+│── README.md               # 项目介绍
+│── train_model.py          # 模型训练脚本
 ├── train_streaming.py      # 流式模型训练脚本
 ```
 
@@ -167,12 +161,13 @@ torch.onnx.export(model, dummy_input, "model.onnx", opset_version=11)
 * [MoViNet 原论文 (Google)](https://arxiv.org/abs/2103.11511)
 * [TF-Hub MoViNet 模型](https://tfhub.dev/s?deployment-format=lite&q=movinet)
 * [PyTorch MoViNet](https://github.com/tensorflow/models/tree/master/official/projects/movinet)
+* [MoViNets的pytorch实现](https://github.com/Atze00/MoViNet-pytorch)
 
 ---
 
 ## 👤 作者信息
 
-* 作者：Kend（中国 🇨🇳）
+* 作者：Kend 🇨🇳
 * 邮箱：[kendtank@163.com](mailto:kendtank@163.com)
 * 时间：2025年7月
 

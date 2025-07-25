@@ -301,6 +301,7 @@ class ConvBlock3D(CausalModule):
         self.activation = torch.zeros(*input_shape[:2],  # type: ignore
                                       self.dim_pad,
                                       *input_shape[3:])
+
 # TODO add requirements
 # TODO create a train sample, just so that we can test the training
 

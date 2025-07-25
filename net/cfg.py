@@ -30,6 +30,7 @@ def dict_to_namespace(d):
 
 def build_movinet_a0_cfg():
 
+    """  需要注意, 流式模型和普通模型, 训练上有不同 """
     cfg_dict = {
         "name": "A0",
         # "weights": "https://github.com/Atze00/MoViNet-pytorch/blob/main/weights/modelA0_statedict_v3?raw=true",

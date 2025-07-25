@@ -48,7 +48,7 @@ from net.cfg import build_movinet_a0_cfg
 #         buffer.append(frame)
 #
 #         if len(buffer) == clip_frames:
-#             # ✅ 正确的维度调整
+#             # TODO ✅ 正确的维度调整
 #             clip = torch.stack(buffer)         # (T, C, H, W)
 #             clip = clip.permute(1, 0, 2, 3)    # (C, T, H, W)
 #             clip = clip.unsqueeze(0).to(device)  # (1, C, T, H, W)
@@ -101,7 +101,7 @@ def stream_inference(model, video_path, clip_frames=8):
                 print(f"[Clip {clip_count}] 预测类别: {'猫' if predicted == 0 else '狗'}, 置信度: {probs[0][predicted].item():.4f}")
                 clip_count += 1
             buffer = []
-            # 如果你希望每个 clip 独立推理，取消下面注释
+            # 如果每个 clip 独立推理，取消下面注释
             # model.clean_activation_buffers()
 
     # 处理剩余帧
