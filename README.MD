@@ -76,7 +76,7 @@ pip install tensorflow tensorflow-hub
 ## 🏋️‍♂️ 模型训练
 
 ```bash
-python train_model.py
+python train_streaming_pro.py
 ```
 
 默认使用 32 帧 + 图像尺寸 244×244 (MoViNet-A0也支持 128×128, 按照需求调整)。

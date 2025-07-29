@@ -8,43 +8,46 @@
 """
 
 
-"""数据增强方案"""
+"""
+数据增强
+1. 提升模型泛化能力
+    增加数据多样性，防止过拟合
+    提高模型对不同光照、色彩条件的鲁棒性
+2. MoViNet训练的最佳实践
+    官方Kinetics训练中也使用了数据增强
+    有助于提升最终的准确率
+"""
 
-import torch
-import random
+
 import torchvision.transforms as transforms
-from torchvision.transforms import functional as F
+
+class VideoTransform:
+    def __init__(self, is_train=True):
+        if is_train:
+            self.transform = transforms.Compose([
+                transforms.ToPILImage(),
+                transforms.RandomHorizontalFlip(p=0.5),
+                transforms.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2),
+                transforms.ToTensor(),
+                transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+            ])
+        else:
+            self.transform = transforms.Compose([
+                transforms.ToPILImage(),
+                transforms.ToTensor(),
+                transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+            ])
+
+    def __call__(self, frame):
+        return self.transform(frame)
 
 
-class RandomResizeCrop:
-    def __init__(self, size=(224, 224), scale=(0.5, 1.0)):
-        self.size = size
-        self.scale = scale
-
-    def __call__(self, img):
-        scale = random.uniform(*self.scale)
-        new_h = int(img.shape[1] * scale)
-        new_w = int(img.shape[2] * scale)
-        img = F.resize(img, (new_h, new_w))
-        img = F.center_crop(img, self.size)
-        return img
-
-
-class ToTensor:
-    def __call__(self, img):
-        return torch.from_numpy(img).permute(2, 0, 1).float() / 255.0
-
-
-
-# 数据增强组合 # TODO: 需要验证是否需要对帧做数据增强
-transform = transforms.Compose([
-    transforms.ToPILImage(),
-    transforms.RandomApply([
-        transforms.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2)
-    ]),
-    transforms.RandomApply([
-        transforms.RandomResizedCrop((224, 224), scale=(0.5, 1.0))
-    ]),
-    transforms.ToTensor(),
-    transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
-])
+"""
+总结
+建议进行适度的数据增强，重点是：
+    保持时间一致性（对所有帧使用相同的增强参数）
+    专注于颜色和光照变化的增强
+    避免破坏动作语义的几何变换
+    根据具体任务调整增强强度
+    这样既能提升模型性能，又不会破坏视频数据的时间连续性特征。
+"""

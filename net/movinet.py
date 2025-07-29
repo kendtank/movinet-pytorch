@@ -21,6 +21,7 @@ from einops import rearrange
 from torch import nn, Tensor
 
 
+
 """自定义激活函数模块 实现了一个近似 Sigmoid 函数的激活函数，适用于轻量级模型。 """
 class Hardsigmoid(nn.Module):
     def __init__(self) -> None:
@@ -302,9 +303,6 @@ class ConvBlock3D(CausalModule):
                                       self.dim_pad,
                                       *input_shape[3:])
 
-# TODO add requirements
-# TODO create a train sample, just so that we can test the training
-
 
 
 """
@@ -370,7 +368,7 @@ def _make_divisible(v: float,
                     min_value: Optional[int] = None
                     ) -> int:
     """
-    确保通道数能被 8 整除，提升硬件效率（如 GPU 并行计算）
+    确保通道数能被 8 整除，提升硬件效率
     """
     if min_value is None:
         min_value = divisor
@@ -438,11 +436,11 @@ class tfAvgPool3D(nn.Module):
 """
 实现 MobileNet 风格的倒残差模块（Inverted Residual）。
 包含：
-expand：扩展通道数。
-deep：深度可分离卷积。
-se：SE 注意力机制。
-project：投影回原始通道数。
-使用 ReZero 技术加速训练收敛。
+    expand：扩展通道数。
+    deep：深度可分离卷积。
+    se：SE 注意力机制。
+    project：投影回原始通道数。
+    使用 ReZero 技术加速训练收敛。
 """
 class BasicBneck(nn.Module):
     def __init__(self,
@@ -551,14 +549,15 @@ class BasicBneck(nn.Module):
         return result
 
 
+
 """ 主干网络：MoViNet """
 class MoViNet(nn.Module):
     def __init__(self,
                  cfg: "CfgNode",
-                 causal: bool = True,
+                 causal: bool = True,  # 是否使用流式处理(也叫因果模式)
                  pretrained: bool = False,
                  num_classes: int = 600,
-                 conv_type: str = "3d",
+                 conv_type: str = "3d",  # 卷积类型, 支持2plus1d 和 3d
                  tf_like: bool = False
                  ) -> None:
         super().__init__()
@@ -704,13 +703,15 @@ class MoViNet(nn.Module):
 
 
 
+""" 模型的加载方式的测试 """
 if __name__ == '__main__':
 
     from cfg import build_movinet_a0_cfg
     movinet_a0_cfg = build_movinet_a0_cfg()
     print("movinet_a0_cfg==", movinet_a0_cfg)
     # 加载模型（causal=True 表示流式模式）
-    model = MoViNet(movinet_a0_cfg, causal=False, pretrained=False)
+    # model = MoViNet(movinet_a0_cfg, causal=False, pretrained=False)
+    model = MoViNet(movinet_a0_cfg, causal=True, pretrained=False, conv_type='2plus1d', num_classes=2)
     # NOTE: 模型结构加载成功.
     print("model==", model)
     # NOTE: 权重加载成功.
@@ -723,4 +724,4 @@ if __name__ == '__main__':
     with torch.no_grad():
         y = model(x)
 
-    print("模型输出形状:", y.shape)  # 模型输出形状: torch.Size([1, 600]) K600数据集的分类数。TEST-ok-0718
+    print("模型输出形状:", y.shape)  # 模型输出形状: torch.Size([1, 600]) K600数据集的分类数。 TODO: TEST-ok-0718

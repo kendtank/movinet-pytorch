@@ -10,10 +10,11 @@
 """ 
 自定义配置而不使用（CfgNode），构建一个字典结构来传递给 MoViNet 模型。MoViNet 的构造函数接受一个 cfg 参数，它是一个类似 CfgNode 的对象，只要具备相应的字段即可。
 手动构造一个 cfg 字典，模拟 _C.MODEL.MoViNetA0 的结构，用于加载 MoViNet 模型。
+NOTE: cfp.py只是支持 MoViNetA0, 如有其他结构的需求,自行查找: https://github.com/Atze00/MoViNet-pytorch
 """
 
-from types import SimpleNamespace
 
+from types import SimpleNamespace
 
 def dict_to_namespace(d):
     """递归将嵌套字典转换为 SimpleNamespace 对象"""
@@ -30,7 +31,7 @@ def dict_to_namespace(d):
 
 def build_movinet_a0_cfg():
 
-    """  需要注意, 流式模型和普通模型, 训练上有不同 """
+    """  需要注意, 流式模型和普通模型, 训练上有不同, 模型结构是一样的"""
     cfg_dict = {
         "name": "A0",
         # "weights": "https://github.com/Atze00/MoViNet-pytorch/blob/main/weights/modelA0_statedict_v3?raw=true",
