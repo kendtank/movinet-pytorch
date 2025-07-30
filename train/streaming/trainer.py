@@ -6,7 +6,8 @@
 @Software: PyCharm
 @modifier: https://github.com/Atze00/MoViNet-pytorch
 """
-
+from train import logger
+from train.logger import setup_logger
 
 """
 官方建议的方法：
@@ -55,7 +56,7 @@ from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 from datetime import datetime
 import torch.nn.functional as F
-from .dataset import (
+from train.streaming.dataset import (
     StreamingVideoDataset,
     get_batch_adaptive_params,
     adaptive_clip_strategy,
@@ -63,6 +64,7 @@ from .dataset import (
 )
 from net.movinet import MoViNet
 from net.cfg import build_movinet_a0_cfg
+from train.transforms import VideoTransform
 
 
 
@@ -74,7 +76,8 @@ def train_iter_streaming_adaptive(
         base_n_clips=8,
         base_n_clip_frames=16,
         device=torch.device('cuda' if torch.cuda.is_available() else 'cpu'),
-        transform=None
+        transform=None,
+        logger = None
 ):
     """
     自适应流式训练处理不同长度视频（训练一个epoch）
@@ -149,7 +152,7 @@ def train_iter_streaming_adaptive(
         total_samples += targets.size(0)
 
         if batch_idx % 10 == 0:
-            print(f'Batch {batch_idx}, '
+            logger.info(f'Batch {batch_idx}, '
                   f'Clips: {batch_n_clips}x{batch_n_clip_frames}, '
                   f'Loss: {avg_loss:.4f}, '
                   f'Acc: {100. * correct / total_samples:.2f}%')
@@ -166,7 +169,8 @@ def evaluate_streaming_adaptive(
         data_loader,
         base_n_clips=8,
         base_n_clip_frames=16,
-        device=torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        device=torch.device('cuda' if torch.cuda.is_available() else 'cpu'),
+        logger = None
 ):
     """
     自适应流式评估处理不同长度视频
@@ -237,6 +241,9 @@ def evaluate_streaming_adaptive(
     avg_loss = total_loss / len(data_loader)
     accuracy = 100. * correct / total_samples
 
+    if logger:
+        logger.info(f'Validation - Loss: {avg_loss:.4f}, Accuracy: {accuracy:.4f}%')
+
     return avg_loss, accuracy
 
 
@@ -260,10 +267,14 @@ def train_streaming_adaptive(
     timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
     log_dir = f'runs/movinet_a0_streaming_adaptive_{timestamp}'
     os.makedirs(save_dir, exist_ok=True)
+    os.makedirs(log_dir, exist_ok=True)
+    # 设置日志记录器
+    my_logger = setup_logger(log_dir)
+
 
     # 加载数据集
-    train_dataset = StreamingVideoDataset(root_dir=data_root, transform=None)
-    val_dataset = StreamingVideoDataset(root_dir=val_root, transform=None)
+    train_dataset = StreamingVideoDataset(root_dir=data_root)
+    val_dataset = StreamingVideoDataset(root_dir=val_root)
 
     train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=2)
     val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False, num_workers=2)
@@ -283,26 +294,29 @@ def train_streaming_adaptive(
     # 训练循环
     best_acc = 0.0
     for epoch in range(num_epochs):
-        print(f"\nEpoch {epoch + 1}/{num_epochs}")
+        my_logger.info(f"\nEpoch {epoch + 1}/{num_epochs}")
 
         # 训练
         train_loss, train_acc = train_iter_streaming_adaptive(
             model, optimizer, train_loader,
             base_n_clips=base_n_clips,
             base_n_clip_frames=base_n_clip_frames,
-            device=device
+            device=device,
+            transform=VideoTransform(is_train=True).transform,
+            logger=my_logger
         )
 
-        print(f"Train Loss: {train_loss:.4f}, Train Accuracy: {train_acc:.4f}")
+        my_logger.info(f"Train Loss: {train_loss:.4f}, Train Accuracy: {train_acc:.4f}")
 
         # 验证
         val_loss, val_acc = evaluate_streaming_adaptive(
             model, val_loader,
             base_n_clips=base_n_clips,
             base_n_clip_frames=base_n_clip_frames,
-            device=device
+            device=device,
+            logger=my_logger
         )
-        print(f"Validation Loss: {val_loss:.4f}, Validation Accuracy: {val_acc:.4f}")
+        my_logger.info(f"Validation Loss: {val_loss:.4f}, Validation Accuracy: {val_acc:.4f}")
 
         # 学习率调度
         scheduler.step(val_loss)
@@ -317,21 +331,21 @@ def train_streaming_adaptive(
         if val_acc > best_acc:
             best_acc = val_acc
             torch.save(model.state_dict(), os.path.join(save_dir, f'movinet_best.pth'))
-            print(f"✅ Best model saved with accuracy: {best_acc:.4f}")
+            my_logger.info(f"✅ Best model saved with accuracy: {best_acc:.4f}")
 
     writer.close()
-    print("Adaptive streaming training complete.")
+    my_logger.info("Adaptive streaming training complete.")
     return model
 
 
 
-# 使用示例
+# 使用
 if __name__ == "__main__":
     # 参数配置
     config = {
-        'data_root': 'dataset/train',
-        'val_root': 'dataset/val',
-        'batch_size': 2,
+        'data_root': '/home/kend/Guanxin/work/workspace/movinet-pytorch/dataset/train',
+        'val_root': '/home/kend/Guanxin/work/workspace/movinet-pytorch/dataset/val',
+        'batch_size': 4,
         'num_epochs': 100,
         'learning_rate': 3e-4,
         'num_classes': 2,

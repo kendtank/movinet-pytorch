@@ -46,7 +46,7 @@ def classify_video_length(frame_count, target_total_frames=128):
         return "very_short"
     elif frame_count <= target_total_frames * 1.5:  # 64-192帧
         return "medium"
-    else:
+    else:   # > 192帧
         return "long"
 
 
@@ -138,38 +138,6 @@ def load_video_clip_adaptive_strategy(video_path, clip_idx, n_clip_frames, strat
     return frames
 
 
-# 为什么没有被调用？
-# 因为在当前的 train_iter_streaming_adaptive 函数中，我们直接调用了更底层的函数来实现更精细的控制。
-
-
-# """ 3: 数据加载函数 """
-# def load_video_clip_smart(video_path, clip_idx, n_clip_frames, transform=None,
-#                           target_total_frames=128):
-#     """
-#     智能视频片段加载函数
-#     """
-#     # 获取自适应策略, 区分是否短视频
-#     n_clips, clip_frames, strategy, total_frames = adaptive_clip_strategy(
-#         video_path, target_total_frames
-#     )
-#
-#     # 加载帧, 根据策略加载视频片段
-#     frames = load_video_clip_adaptive_strategy(
-#         video_path, clip_idx, n_clip_frames, strategy, total_frames
-#     )
-#
-#     if isinstance(frames, torch.Tensor):
-#         return frames  # 已经是张量格式
-#
-#     # 应用变换
-#     if transform:
-#         frames = [transform(frame) for frame in frames]
-#     else:
-#         frames = [torch.from_numpy(frame).float().permute(2, 0, 1) / 255.0 for frame in frames]
-#
-#     frames = torch.stack(frames)  # (T, C, H, W)
-#     return frames.permute(1, 0, 2, 3)  # (C, T, H, W)
-
 
 
 
@@ -209,6 +177,36 @@ def get_batch_adaptive_params(video_paths, base_n_clips=8, base_n_clip_frames=16
     n_clip_frames = max(1, n_clip_frames)
 
     return n_clips, n_clip_frames
+
+
+
+class StreamingVideoDataset(Dataset):
+    def __init__(self, root_dir):
+        """
+        :param root_dir: 数据集视频目录
+        扫描目录，构建样本列表
+        不实际加载视频数据，只保存路径
+        """
+        self.root_dir = root_dir
+        self.classes = sorted(os.listdir(root_dir))
+        self.class_to_idx = {cls: idx for idx, cls in enumerate(self.classes)}
+        self.samples = []  # 样本列表, 提供给pytorch的DataLoader
+
+        for label, cls in enumerate(self.classes):
+            cls_folder = os.path.join(root_dir, cls)
+            for video in os.listdir(cls_folder):
+                self.samples.append((os.path.join(cls_folder, video), label))
+
+    def __len__(self):
+        return len(self.samples)
+
+    def __getitem__(self, idx):
+        """
+        返回视频路径和标签，实际帧加载在训练时进行
+        """
+        video_path, label = self.samples[idx]
+        return video_path, label
+
 
 
 
@@ -307,33 +305,3 @@ def train_iter_streaming_adaptive(
     epoch_acc = 100. * correct / total_samples
 
     return epoch_loss, epoch_acc
-
-
-
-
-class StreamingVideoDataset(Dataset):
-    def __init__(self, root_dir):
-        """
-        :param root_dir: 数据集视频目录
-        扫描目录，构建样本列表
-        不实际加载视频数据，只保存路径
-        """
-        self.root_dir = root_dir
-        self.classes = sorted(os.listdir(root_dir))
-        self.class_to_idx = {cls: idx for idx, cls in enumerate(self.classes)}
-        self.samples = []  # 样本列表, 提供给pytorch的DataLoader
-
-        for label, cls in enumerate(self.classes):
-            cls_folder = os.path.join(root_dir, cls)
-            for video in os.listdir(cls_folder):
-                self.samples.append((os.path.join(cls_folder, video), label))
-
-    def __len__(self):
-        return len(self.samples)
-
-    def __getitem__(self, idx):
-        """
-        返回视频路径和标签，实际帧加载在训练时进行
-        """
-        video_path, label = self.samples[idx]
-        return video_path, label
