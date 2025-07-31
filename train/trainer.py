@@ -6,6 +6,8 @@
 @Software: PyCharm
 @modifier: https://github.com/Atze00/MoViNet-pytorch
 """
+
+
 import os
 import sys
 # 添加上次目录到项目路径
@@ -21,7 +23,7 @@ from train.utils import check_model_learning_capability
     将视频分为 n_clips 个片段
     每个片段包含 n_clip_frames 帧
     逐段输入模型处理
-    流式缓冲：使用 model.clean_activation_buffers() 清理激活缓冲区
+    流式缓冲：使用 model.clean_activation_buffers() 清理单个视频的激活缓冲区
     梯度累积：对每个片段分别计算损失并反向传播，最后统一优化
 为MoViNet优化的数据集加载器，支持混合长度视频数据集训练
 """
@@ -30,8 +32,8 @@ from train.utils import check_model_learning_capability
 """
 总结
 核心观点确认
-✅ 学习完整性：理论上，一次性加载整个视频和分段处理，模型最终学到的信息是一样的。
-✅ 内存差异：这是最主要的区别，特别是对于长视频。
+    学习完整性：理论上，一次性加载整个视频和分段处理，模型最终学到的信息是一样的。
+    内存差异：这是最主要的区别，特别是对于长视频。
 但还有一些重要区别
     # MoViNet的流式处理优势：
     model.clean_activation_buffers()  # 缓冲区管理
@@ -51,8 +53,9 @@ MoViNet分段处理的真正优势在于：
     内存效率：可以处理任意长度的视频
 
 分段处理主要优势是内存效率和实时处理能力，而不是学习效果本身。对于较短视频，整段处理可能更简单直接；对于长视频，分段处理是必要的。
-这就是为什么我们要根据视频长度和应用场景来选择合适的处理方式。
+这就是为什么要根据视频长度和应用场景来选择合适的处理方式。
 """
+
 
 
 import os
@@ -83,7 +86,8 @@ def train_iter_streaming_adaptive(
         base_n_clip_frames=16,
         device=torch.device('cuda' if torch.cuda.is_available() else 'cpu'),
         transform=None,
-        logger = None
+        logger = None,
+        dsize=(224, 224)
 ):
     """
     自适应流式训练处理不同长度视频（训练一个epoch）
@@ -94,83 +98,121 @@ def train_iter_streaming_adaptive(
     total_samples = 0
 
     for batch_idx, (video_paths, targets) in enumerate(data_loader):
+
+        if not video_paths:
+            if logger:
+                logger.warning(f"Empty video path list at batch {batch_idx}, skipping...")
+            continue
         targets = targets.to(device)
 
-        # 在每个视频批次开始前清理模型的激活缓冲区
+        # 在每个视频开始前清理模型的激活缓冲区, 单独的一个视频的激活缓冲区应该被清理
         if hasattr(model, 'clean_activation_buffers'):
             model.clean_activation_buffers()
 
         optimizer.zero_grad()
 
-        # 获取batch级别自适应参数，确保一致性
-        batch_n_clips, batch_n_clip_frames = get_batch_adaptive_params(
+        # 获取batch参数，确保一致性
+        batch_n_clips, batch_n_clip_frames, length_category = get_batch_adaptive_params(
             video_paths, base_n_clips, base_n_clip_frames
         )
+        if logger and batch_idx % 10 == 0:
+            logger.info(
+                f"[Batch {batch_idx}] Length category: {length_category}, Clips: {batch_n_clips}, Clip frames: {batch_n_clip_frames}")
+
+
         # TODO: # 问题：每个clip独立计算损失，然后简单平均, 应该：收集所有clip的输出，平均后再计算损失
         # 收集所有clip的输出
         clip_outputs = []
 
-        # # 对每个clip进行处理
-        # clip_losses = []
 
+        # 对每个clip进行处理
         for clip_idx in range(batch_n_clips):
             clip_frames = []
+            valid_target_indices = []  # 记录有效视频的索引和目标值
+
             for i, video_path in enumerate(video_paths):
-                # 为每个视频获取具体策略（但使用统一的clip参数）
-                _, _, strategy, total_frames = adaptive_clip_strategy(
-                    video_path, 128, batch_n_clip_frames
-                )
+                try:
+                    # 为每个视频获取具体策略（但使用统一的clip参数）
+                    _, _, strategy, total_frames = adaptive_clip_strategy(
+                        video_path, 128, batch_n_clip_frames
+                    )
 
-                # 加载帧
-                frames = load_video_clip_adaptive_strategy(
-                    video_path, clip_idx, batch_n_clip_frames, strategy, total_frames
-                )
+                    # 加载帧
+                    frames = load_video_clip_adaptive_strategy(
+                        video_path, clip_idx, batch_n_clip_frames, strategy, total_frames, dsize, logger
+                    )
 
-                # 应用变换
-                if transform and isinstance(frames, list):
-                    frames = [transform(frame) for frame in frames]
-                elif isinstance(frames, list):
-                    frames = [torch.from_numpy(frame).float().permute(2, 0, 1) / 255.0 for frame in frames]
+                    # 应用变换
+                    if isinstance(frames, list):
+                        if transform:
+                            frames = [transform(frame) for frame in frames]
+                        else:
+                            frames = [torch.from_numpy(frame).float().permute(2, 0, 1) / 255.0 for frame in frames]
 
-                if isinstance(frames, list):
-                    frames = torch.stack(frames).permute(1, 0, 2, 3)
+                        frames = torch.stack(frames).permute(1, 0, 2, 3)
+                        clip_frames.append(frames)
+                        valid_target_indices.append(i)  # 记录有效视频
+                    # else:  # skip broken video，不添加到clip_frames中
 
-                clip_frames.append(frames)
 
-            clip_frames = torch.stack(clip_frames).to(device)
+                except Exception as e:
+                    if logger:
+                        logger.error(f"Failed to load video {video_path}: {e}")
+                    continue
+
+            # 检查是否有有效帧
+            if not clip_frames:
+                if logger:
+                    logger.warning(f"No valid frames loaded for clip {clip_idx}")
+                continue
+
+            # 将列表转换为Tensor并移到设备上
+            clip_frames_tensor = torch.stack(clip_frames).to(device)
 
             # 前向传播
-            output = model(clip_frames)
+            output = model(clip_frames_tensor)
             # 集成所有clip的输出
-            clip_outputs.append(output)
+            clip_outputs.append(output)   # BUG: 将Tensor当作list处理时
             # # 添加调试信息
             # if batch_idx == 0 and logger:
             #     logger.info(f"Train batch output range: [{output.min():.4f}, {output.max():.4f}]")
 
         # 对所有clip的输出求平均
         if clip_outputs:
-            final_output = torch.stack(clip_outputs).mean(dim=0)
-            # 计算最终损失
-            loss = F.cross_entropy(final_output, targets)
-            loss.backward()
 
+            final_output = torch.stack(clip_outputs).mean(dim=0)
+
+            # 使用有效目标值
+            valid_targets = targets[valid_target_indices] if valid_target_indices else targets
+
+            # 计算最终损失, 确保所有clip的输出都是有效的, 不会影响训练
+            try:
+                loss = F.cross_entropy(final_output, valid_targets)
+            except Exception as e:
+                if logger:
+                    logger.error(f"Loss calculation error at batch {batch_idx}: {e}")
+                continue
+
+            loss.backward()
             # 更新参数
             optimizer.step()
 
             # 统计信息
             total_loss += loss.item()
             pred = torch.argmax(final_output, dim=1)
-            correct += pred.eq(targets).sum().item()
-            total_samples += targets.size(0)
+            correct += pred.eq(valid_targets).sum().item()
+            total_samples += valid_targets.size(0)
+            if logger and batch_idx % 10 == 0:
+                logger.info(
+                    f'[Train] Batch {batch_idx}, Loss: {loss.item():.4f}, Acc: {100. * correct / total_samples:.2f}%')
 
-
-    # TODO:
+        # TODO:
         """
-                主要改进点
-        统一损失计算：收集所有clip的输出，平均后再计算损失，这样更符合MoViNet的设计理念
-        准确的准确率计算：基于所有clip的平均输出计算准确率
-        正确的梯度更新：在处理完所有clip后进行一次参数更新
-        这种修改方式更符合MoViNet流式处理的设计思想，能够更好地利用模型的时序建模能力。
+        主要改进点
+            统一损失计算：收集所有clip的输出，平均后再计算损失，这样更符合MoViNet的设计理念
+            准确的准确率计算：基于所有clip的平均输出计算准确率
+            正确的梯度更新：在处理完所有clip后进行一次参数更新
+            这种修改方式更符合MoViNet流式处理的设计思想，能够更好地利用模型的时序建模能力。
         """
 
             # # 计算loss并累积梯度
@@ -188,35 +230,29 @@ def train_iter_streaming_adaptive(
         # with torch.no_grad():
         #     pred = torch.argmax(output, dim=1)
         #     correct += pred.eq(targets).sum().item()
-        #
         # total_samples += targets.size(0)
 
-        if batch_idx % 10 == 0:
-            logger.info(f'Batch {batch_idx}, '
-                        f'Clips: {batch_n_clips}x{batch_n_clip_frames}, '
-                        f'Loss: {loss.item():.4f}, '
-                        f'Acc: {100. * correct / total_samples:.2f}%')
-
     epoch_loss = total_loss / len(data_loader)
-    epoch_acc = 100. * correct / total_samples
+    epoch_acc = 100. * correct / total_samples if total_samples > 0 else 0.0
 
     return epoch_loss, epoch_acc
 
 
 
 
-"""  002  验证有效果"""
+""" 验证函数 验证一个epoch中一个batch的函数, 保持和训练一致, 取消图像增强"""
 def evaluate_streaming_adaptive(
         model,
         data_loader,
         base_n_clips=8,
         base_n_clip_frames=16,
         device=torch.device('cuda' if torch.cuda.is_available() else 'cpu'),
-        logger=None
+        logger=None,
+        dsize=(224, 224)
 ):
     """
     自适应流式评估处理不同长度视频
-    修改为与训练函数一致的处理方式
+    保持训练函数一致的处理方式
     """
     model.eval()
     total_loss = 0
@@ -228,6 +264,11 @@ def evaluate_streaming_adaptive(
 
     with torch.no_grad():
         for batch_idx, (video_paths, targets) in enumerate(data_loader):
+            if not video_paths:
+                if logger:
+                    logger.warning(f"Empty video path list at val batch {batch_idx}, skipping...")
+                continue
+
             targets = targets.to(device)
             all_targets.extend(targets.cpu().numpy())
 
@@ -246,25 +287,43 @@ def evaluate_streaming_adaptive(
             # 处理每个clip
             for clip_idx in range(batch_n_clips):
                 clip_frames = []
+                valid_target_indices = []  # 记录有效视频的索引
+
+                # 为当前clip收集所有视频的帧
                 for i, video_path in enumerate(video_paths):
-                    # 获取该视频的具体策略
-                    _, _, strategy, total_frames = adaptive_clip_strategy(
-                        video_path, 128, batch_n_clip_frames
-                    )
 
-                    # 加载帧
-                    frames = load_video_clip_adaptive_strategy(
-                        video_path, clip_idx, batch_n_clip_frames, strategy, total_frames
-                    )
+                    try:
+                        # 获取该视频的具体策略
+                        _, _, strategy, total_frames = adaptive_clip_strategy(
+                            video_path, 128, batch_n_clip_frames
+                        )
 
-                    # 应用变换（评估时不使用数据增强）
-                    if isinstance(frames, list):
-                        frames = [torch.from_numpy(frame).float().permute(2, 0, 1) / 255.0 for frame in frames]
+                        # 加载帧
+                        frames = load_video_clip_adaptive_strategy(
+                            video_path, clip_idx, batch_n_clip_frames, strategy, total_frames, dsize, logger
+                        )
+                        if isinstance(frames, list):
+                            frames = [torch.from_numpy(frame).float().permute(2, 0, 1) / 255.0 for frame in frames]
+                            frames = torch.stack(frames).permute(1, 0, 2, 3)
+                            clip_frames.append(frames)
+                            valid_target_indices.append(i)  # 记录有效视频索引
+                        # else:
+                        #     continue
+                    # # 应用变换（评估时不使用数据增强）
+                    # if isinstance(frames, list):
+                    #     frames = [torch.from_numpy(frame).float().permute(2, 0, 1) / 255.0 for frame in frames]
+                    #
+                    # if isinstance(frames, list):
+                    #     frames = torch.stack(frames).permute(1, 0, 2, 3)
 
-                    if isinstance(frames, list):
-                        frames = torch.stack(frames).permute(1, 0, 2, 3)
+                    except Exception as e:
+                        if logger:
+                            logger.error(f"[Eval] Failed to load video {video_path}: {e}")
+                        continue
 
-                    clip_frames.append(frames)
+                # 检查是否有有效帧
+                if not clip_frames:
+                    continue
 
                 clip_frames = torch.stack(clip_frames).to(device)
 
@@ -272,27 +331,35 @@ def evaluate_streaming_adaptive(
                 output = model(clip_frames)
                 clip_outputs.append(output)
 
-                # 注意：不要在这里清理缓冲区，保持时序状态
+            # 注意：不要在这里清理缓冲区，保持时序状态
 
             # 对所有clip的输出求平均（与训练函数保持一致）
             if clip_outputs:
                 final_output = torch.stack(clip_outputs).mean(dim=0)
+                # 使用有效目标值
+                valid_targets = targets[valid_target_indices] if valid_target_indices else targets
 
-                loss = F.cross_entropy(final_output, targets)
+                try:
+                    loss = F.cross_entropy(final_output, valid_targets)
+                except Exception as e:
+                    if logger:
+                        logger.error(f"Loss error at val batch {batch_idx}: {e}")
+                    continue
+
                 total_loss += loss.item()
 
                 pred = torch.argmax(final_output, dim=1)
                 all_predictions.extend(pred.cpu().numpy())
 
                 correct += pred.eq(targets).sum().item()
-                total_samples += targets.size(0)
+                total_samples += valid_targets.size(0)
 
                 if logger and batch_idx == 0:  # 只在第一个batch记录详细信息
-                    logger.info(f"Val batch targets: {targets.cpu().numpy()}, predictions: {pred.cpu().numpy()}")
+                    logger.info(f"Val batch targets: {valid_targets.cpu().numpy()}, predictions: {pred.cpu().numpy()}")
                     logger.info(f"Val batch output logits: {final_output.cpu().numpy()}")
 
     avg_loss = total_loss / len(data_loader)
-    accuracy = 100. * correct / total_samples
+    accuracy = 100. * correct / total_samples if total_samples > 0 else 0.0
 
     if logger:
         import numpy as np
@@ -306,6 +373,7 @@ def evaluate_streaming_adaptive(
 
 
 
+""" 训练函数, 训练整个数据集 """
 def train_streaming_adaptive(
         data_root='dataset/train',
         val_root='dataset/val',
@@ -316,7 +384,8 @@ def train_streaming_adaptive(
         base_n_clips=8,
         base_n_clip_frames=16,
         device=torch.device("cuda" if torch.cuda.is_available() else "cpu"),
-        save_dir='checkpoints'
+        save_dir='checkpoints',
+        dsize=(224, 224)
 ):
     """
     完整的自适应流式训练流程
@@ -334,7 +403,8 @@ def train_streaming_adaptive(
     train_dataset = StreamingVideoDataset(root_dir=data_root)
     val_dataset = StreamingVideoDataset(root_dir=val_root)
 
-
+    # 记录数据量信息
+    my_logger.info(f"Training dataset size: {len(train_dataset)}")
     my_logger.info(f"Validation dataset size: {len(val_dataset)}")
 
     # # 检查验证集标签分布
@@ -347,19 +417,21 @@ def train_streaming_adaptive(
     unique_targets, counts = np.unique(all_val_targets, return_counts=True)
     my_logger.info(f"Validation target distribution: {dict(zip(unique_targets, counts))}")
 
+
     # 检查训练集标签分布
-    my_logger.info(f"Training dataset size: {len(train_dataset)}")
-    train_loader_temp = DataLoader(train_dataset, batch_size=batch_size, shuffle=False, num_workers=2)
-    all_train_targets = []
-    for _, targets in train_loader_temp:
-        all_train_targets.extend(targets.numpy())
+    def analyze_distribution(dataloader, label_name):
+        targets = []
+        for _, y in dataloader:
+            targets.extend(y.numpy())
+        unique, counts = np.unique(targets, return_counts=True)
+        my_logger.info(f"{label_name} target distribution: {dict(zip(unique, counts))}")
 
-    unique_train_targets, train_counts = np.unique(all_train_targets, return_counts=True)
-    my_logger.info(f"Training target distribution: {dict(zip(unique_train_targets, train_counts))}")
+    analyze_distribution(DataLoader(train_dataset, batch_size=batch_size, shuffle=False, num_workers=2), "Training")
+    analyze_distribution(DataLoader(val_dataset, batch_size=batch_size, shuffle=False, num_workers=2), "Validation")
 
 
 
-
+    # 构建数据加载器
     train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=2)
     val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False, num_workers=2)
 
@@ -384,7 +456,7 @@ def train_streaming_adaptive(
         my_logger.info(f"\nEpoch {epoch + 1}/{num_epochs}")
         # 在训练循环中添加检查
         if epoch == 0:
-            check_model_learning_capability(model, val_loader, device, my_logger)
+            check_model_learning_capability(model, val_loader, device, my_logger, dsize)
         # 训练
         train_loss, train_acc = train_iter_streaming_adaptive(
             model, optimizer, train_loader,
@@ -392,7 +464,8 @@ def train_streaming_adaptive(
             base_n_clip_frames=base_n_clip_frames,
             device=device,
             transform=VideoTransform(is_train=True).transform,
-            logger=my_logger
+            logger=my_logger,
+            dsize=dsize
         )
 
         my_logger.info(f"Train Loss: {train_loss:.4f}, Train Accuracy: {train_acc:.4f}")
@@ -403,7 +476,8 @@ def train_streaming_adaptive(
             base_n_clips=base_n_clips,
             base_n_clip_frames=base_n_clip_frames,
             device=device,
-            logger=my_logger
+            logger=my_logger,
+            dsize=dsize
         )
         my_logger.info(f"Validation Loss: {val_loss:.4f}, Validation Accuracy: {val_acc:.4f}")
 
@@ -437,7 +511,6 @@ if __name__ == "__main__":
         'val_root': '/home/kend/Guanxin/work/workspace/movinet-pytorch/dataset/val',
         # 'data_root': '/home/kend/Guanxin/Datasets/dataset/classes/movinet-pet-destruction-video/hmdb_test/train',
         # 'val_root': '/home/kend/Guanxin/Datasets/dataset/classes/movinet-pet-destruction-video/hmdb_test/val',
-
         'batch_size': 2,
         'num_epochs': 100,
         'learning_rate': 3e-4,
@@ -445,7 +518,8 @@ if __name__ == "__main__":
         'base_n_clips': 8,
         'base_n_clip_frames': 16,
         'device': torch.device("cuda" if torch.cuda.is_available() else "cpu"),
-        'save_dir': 'checkpoints'
+        'save_dir': 'checkpoints',
+        'dsize': (224, 224)
     }
 
     # 开始训练

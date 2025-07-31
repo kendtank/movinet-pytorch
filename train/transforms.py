@@ -21,6 +21,7 @@
 
 import torchvision.transforms as transforms
 
+
 class VideoTransform:
     def __init__(self, is_train=True):
         if is_train:

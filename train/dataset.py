@@ -16,12 +16,19 @@ import cv2
 
 """
 处理混合长度视频数据集
-    数据集非常混乱有2-20秒的视频（25fps = 50-500帧）
+    数据集非常混乱有2-20秒的视频（25fps = 50-500帧）(30fps = 60-600帧)
 视频长度分类：
-    短视频： < 64帧  →  需要特殊处理
+    短视频： < 64帧  →  需要特殊处理, 一次性加载完
     中等视频：64-192帧  →  标准分段处理
-    长视频： > 192帧  →  随机采样处理
+    长视频： > 192帧  →  随机采样处理 (随机采集, 再标准分段处理)
 """
+
+
+VALID_VIDEO_EXTS = [".mp4", ".avi", ".mov", ".mkv", ".flv"]  # 支持的视频加载格式
+
+def is_valid_video_file(filename):
+    return os.path.splitext(filename)[-1].lower() in VALID_VIDEO_EXTS
+
 
 
 
@@ -48,6 +55,7 @@ def classify_video_length(frame_count, target_total_frames=128):
         return "medium"
     else:   # > 192帧
         return "long"
+
 
 
 
@@ -79,63 +87,85 @@ def adaptive_clip_strategy(video_path, target_total_frames=128, base_clip_frames
 
 
 
-def load_video_clip_adaptive_strategy(video_path, clip_idx, n_clip_frames, strategy, total_frame_count, dsize=(224, 224)):
+def read_and_process_frame(cap, frame_idx, dsize=(224, 224)):
     """
-    根据策略加载视频片段
+    读取并处理单帧图像：resize、BGR转RGB
+    """
+    cap.set(cv2.CAP_PROP_POS_FRAMES, frame_idx)
+    ret, frame = cap.read()
+    if not ret or frame is None:
+        return None
+    frame = cv2.resize(frame, tuple(dsize))   # 强制转换为元组
+    frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+    return frame
+
+
+
+
+""" 加载单个视频 """
+def load_video_clip_adaptive_strategy(video_path, clip_idx, n_clip_frames, strategy, total_frame_count, dsize=(224, 224), logger=None):
+    """
+    根据策略加载视频片段（包含因果模型适配、补帧、异常处理）
+    返回格式：List[np.ndarray]，帧序列长度 = n_clip_frames
     """
     cap = cv2.VideoCapture(video_path)
     frames = []
+    if logger and clip_idx == 0:  # 只打印第一个clip的信息:
+        # 打印调试信息
+        logger.info(f"[{strategy}] clip_idx: {clip_idx}, n_clip_frames: {n_clip_frames}, total_frames: {total_frame_count}")
+    def append_frame(frame_idx):
+        frame = read_and_process_frame(cap, frame_idx, dsize)
+        if frame is not None:
+            frames.append(frame)
 
-    if strategy == "loop_fill":
-        # 循环填充策略
-        for i in range(n_clip_frames):
-            frame_idx = (clip_idx * n_clip_frames + i) % total_frame_count
-            cap.set(cv2.CAP_PROP_POS_FRAMES, frame_idx)
-            ret, frame = cap.read()
-            if ret and frame is not None:
-                frame = cv2.resize(frame, dsize)
-                frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-                frames.append(frame)
+    try:
+        if strategy == "loop_fill":
+            for i in range(n_clip_frames):
+                frame_idx = (clip_idx * n_clip_frames + i) % total_frame_count
+                append_frame(frame_idx)
 
-    elif strategy == "standard":
-        # 标准顺序策略
-        start_frame = clip_idx * n_clip_frames
-        cap.set(cv2.CAP_PROP_POS_FRAMES, start_frame)
-        for _ in range(n_clip_frames):
-            ret, frame = cap.read()
-            if not ret:
-                break
-            if frame is not None:
-                frame = cv2.resize(frame, dsize)
-                frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-                frames.append(frame)
+        elif strategy == "standard":
+            start_frame = clip_idx * n_clip_frames
+            if start_frame >= total_frame_count:
+                start_frame = max(0, total_frame_count - n_clip_frames)
+            for i in range(n_clip_frames):
+                frame_idx = start_frame + i
+                if frame_idx < total_frame_count:
+                    append_frame(frame_idx)
 
-    elif strategy == "random_start":
-        # 随机起始点策略
-        max_start = max(0, total_frame_count - (8 * n_clip_frames))
-        random_offset = torch.randint(0, max_start + 1, (1,)).item() if max_start > 0 else 0
-        start_frame = random_offset + clip_idx * n_clip_frames
-        cap.set(cv2.CAP_PROP_POS_FRAMES, start_frame)
-        for _ in range(n_clip_frames):
-            ret, frame = cap.read()
-            if not ret:
-                break
-            if frame is not None:
-                frame = cv2.resize(frame, dsize)
-                frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-                frames.append(frame)
-
-    cap.release()
+        elif strategy == "random_start":
+            max_offset = max(0, total_frame_count - (8 * n_clip_frames))
+            random_offset = torch.randint(0, max_offset + 1, (1,)).item() if max_offset > 0 else 0
+            start_frame = random_offset + clip_idx * n_clip_frames
+            for i in range(n_clip_frames):
+                frame_idx = start_frame + i
+                if frame_idx < total_frame_count:
+                    append_frame(frame_idx)
 
 
-    # 处理帧数不足的情况
-    while len(frames) < n_clip_frames and frames:
-        frames.append(frames[-1])
+    finally:
 
+        cap.release()
+
+
+    # 空帧处理：完全读取失败
     if not frames:
         return torch.zeros(3, n_clip_frames, 224, 224)
 
+    # 补齐帧数（末尾重复, 前向填充没有测试过）
+    while len(frames) < n_clip_frames:
+        frames.append(frames[-1])  # 也可以用 frames.insert(0, frames[0]) 做前向补齐
+
     return frames
+
+"""
+| 视频长度 | 帧数   | 分类          | n\_clips  | n\_clip\_frames | 采样策略        | 采样帧区间示例                                                         |
+| ------ | ---   | -----------   | -------- | ---------------  | ------------- | --------------------------------------------------------------- |
+| 1      | 45    | very\_short   | 1        | 45               | loop\_fill    | clip0: \[0, 44]                                                 |
+| 2      | 100   | medium        | 6        | 16               | standard      | clip0: \[0, 15], clip1: \[16, 31], ..., clip5: \[80, 95]        |
+| 3      | 300   | long          | 8        | 16               | random\_start | clip0: \[50, 65], clip1: \[66, 81], ..., clip7: \[162, 177]（示例） |
+"""
+
 
 
 
@@ -144,10 +174,10 @@ def load_video_clip_adaptive_strategy(video_path, clip_idx, n_clip_frames, strat
 """ 4: 批量处理一致性保证 """
 def get_batch_adaptive_params(video_paths, base_n_clips=8, base_n_clip_frames=16):
     """
-    获取batch级别的自适应参数，确保一致性
+    获取batch级别的自适应参数，确保一致性, 并返回视频长度分类（便于调试）
     """
     if not video_paths:
-        return base_n_clips, base_n_clip_frames
+        return base_n_clips, base_n_clip_frames, "undefined"
 
     # 获取所有视频的信息
     video_info_list = [get_video_info(path) for path in video_paths]
@@ -176,7 +206,7 @@ def get_batch_adaptive_params(video_paths, base_n_clips=8, base_n_clip_frames=16
     n_clips = max(1, n_clips)
     n_clip_frames = max(1, n_clip_frames)
 
-    return n_clips, n_clip_frames
+    return n_clips, n_clip_frames, length_category
 
 
 
@@ -195,7 +225,8 @@ class StreamingVideoDataset(Dataset):
         for label, cls in enumerate(self.classes):
             cls_folder = os.path.join(root_dir, cls)
             for video in os.listdir(cls_folder):
-                self.samples.append((os.path.join(cls_folder, video), label))
+                if is_valid_video_file(video):
+                    self.samples.append((os.path.join(cls_folder, video), label))
 
     def __len__(self):
         return len(self.samples)
