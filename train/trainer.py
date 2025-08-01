@@ -436,7 +436,15 @@ def train_streaming_adaptive(
     # my_logger.info(f"model classes={num_classes}")
     # 注意：当 pretrained=True 时，模型会强制使用600个类别（K600数据集）
     # model = MoViNet(cfg, causal=True, pretrained=False, num_classes=num_classes, conv_type="2plus1d", tf_like=True)# 先加载预训练模型
-    model = MoViNet(cfg, causal=True, pretrained=True, conv_type="2plus1d", tf_like=True)
+    # model = MoViNet(cfg, causal=True, pretrained=True, conv_type="2plus1d", tf_like=True)
+    model = MoViNet(
+        cfg,
+        causal=True,  # 因果模式
+        pretrained=True,  # 使用预训练权重
+        num_classes=num_classes,  # 明确类别数
+        conv_type="2plus1d",  # 2+1D卷积
+        tf_like=True  # TensorFlow风格
+    )
 
     # 然后替换分类器以适应你的任务
     model.classifier = nn.Sequential(

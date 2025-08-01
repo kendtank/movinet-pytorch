@@ -1,5 +1,77 @@
 # 实时监控中的违规行为检测机制
 
+
+
+## 因果卷积和运行时状态传递
+```python
+
+# 1: 因果卷积是一种网络结构设计，确保模型在处理时间序列时不会"偷看"未来信息。
+
+# 因果卷积示例
+class CausalConv1D(torch.nn.Module):
+    def __init__(self, in_channels, out_channels, kernel_size):
+        super().__init__()
+        self.conv = torch.nn.Conv1d(in_channels, out_channels, kernel_size)
+        # 添加padding，但只在时间轴的"过去"方向
+        self.padding = (kernel_size - 1, 0)  # 只padding左边(过去)，不padding右边(未来)
+    
+    def forward(self, x):
+        # x shape: (batch, channels, time)
+        x = torch.nn.functional.pad(x, self.padding)
+        return self.conv(x)
+
+# 在时间t的输出只依赖于时间≤t的输入
+# 时间: ... t-2  t-1   t   t+1  t+2 ...
+# 输入: ...  ✓    ✓    ✓    ✗    ✗  (✗表示不依赖)
+# 输出: ....................... ↑ (时间t的输出)
+
+# 2: 状态传递 (State Propagation)
+# 简化的状态传递概念
+class StatefulLayer:
+    def __init__(self):
+        self.current_state = None
+    
+    def forward(self, input_frame):
+        if self.current_state is None:
+            # 第一帧，初始化状态
+            self.current_state = self.initialize_state(input_frame)
+        else:
+            # 后续帧，基于前一状态和当前输入更新状态
+            self.current_state = self.update_state(self.current_state, input_frame)
+        
+        return self.compute_output(self.current_state)
+
+# 每个时间步的输出依赖于：
+# 1. 当前输入
+# 2. 之前所有时间步的信息（通过状态传递）
+
+```
+###  关键区别：
+###  - 因果卷积：网络结构层面的约束（静态）
+###  - 状态传递：运行时的信息流动机制（动态）
+
+### 例子说明:
+```python
+# 假设处理一个"鼓掌"动作识别任务
+
+# 时间轴:  [静止] [抬手] [拍手] [拍手] [放下手]
+# 帧编号:    1      2      3      4      5
+
+# 因果卷积的作用：
+# 处理第3帧时，卷积操作只能看到第1、2、3帧，不能看到第4、5帧
+
+# 状态传递的作用：
+# 处理第1帧后：state1 = "看到静止"
+# 处理第2帧后：state2 = "看到从静止到抬手的变化趋势"  
+# 处理第3帧后：state3 = "看到从静止→抬手→拍手的完整动作起始"
+# 处理第4帧后：state4 = "看到连续拍手动作"
+# 处理第5帧后：state5 = "看到完整的鼓掌动作模式"
+
+# 最终输出基于state5，包含了整个动作序列的信息
+```
+
+
+
 ## 实时流处理的工作流程
 
 ### 1. 流式输入处理
@@ -7,7 +79,7 @@
 # 实际监控场景
 视频流 → 实时帧输入 → MoViNet模型 → 违规检测
 
-# 不是等128帧才判断，而是实时处理每一帧/每段帧
+# 不是等128帧才判断，而是实时处理每一帧/每段帧(所以采用因果模式, 支持实时处理)
 ```
 
 
