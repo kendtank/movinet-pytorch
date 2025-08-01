@@ -110,9 +110,9 @@ def load_video_clip_adaptive_strategy(video_path, clip_idx, n_clip_frames, strat
     """
     cap = cv2.VideoCapture(video_path)
     frames = []
-    if logger and clip_idx == 0:  # 只打印第一个clip的信息:
-        # 打印调试信息
-        logger.info(f"[{strategy}] clip_idx: {clip_idx}, n_clip_frames: {n_clip_frames}, total_frames: {total_frame_count}")
+    # if logger and clip_idx == 0:  # 只打印第一个clip的信息:
+    #     # 打印调试信息
+    #     logger.info(f"[{strategy}] clip_idx: {clip_idx}, n_clip_frames: {n_clip_frames}, total_frames: {total_frame_count}")
     def append_frame(frame_idx):
         frame = read_and_process_frame(cap, frame_idx, dsize)
         if frame is not None:

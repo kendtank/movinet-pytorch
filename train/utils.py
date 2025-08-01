@@ -51,6 +51,13 @@ def check_model_learning_capability(model, data_loader, device, logger, dsize):
         output = model(clip_frames)
 
         if logger:
+            logger.info(f"Model check - Input shape: {clip_frames.shape}")
             logger.info(f"Model check - Targets: {targets.cpu().numpy()}")
-            logger.info(f"Model check - Output: {output.cpu().numpy()}")
-            logger.info(f"Model check - Output std: {output.std().item():.4f}")
+            logger.info(f"Model check - Output shape: {output.shape}")
+            # logger.info(f"Model check - Output: {output.cpu().numpy()}")
+            # logger.info(f"Model check - Output std: {output.std().item():.4f}")
+
+            # # 添加softmax后的概率分布
+            # if output.shape[-1] > 1:  # 确保是分类输出
+            #     probs = torch.softmax(output, dim=-1)
+            #     logger.info(f"Model check - Probabilities: {probs.cpu().numpy()}")

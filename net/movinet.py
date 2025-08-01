@@ -572,6 +572,22 @@ class MoViNet(nn.Module):
         conv7: 最后一个卷积层。
         classifier: 分类头（包含 ConvBlock3D 和 Dropout）。
         支持加载预训练权重（通过 torch.hub 加载）。
+        # TODO: 当你设置 pretrained=True 时，无论你传入什么 num_classes 值，都会被强制覆盖为 600
+        以后想要使用预训练权重，但又需要适应自己的分类任务
+        # 先加载预训练模型
+        model = MoViNet(cfg, causal=True, pretrained=True, conv_type="2plus1d", tf_like=True)
+        
+        # 然后替换分类器以适应你的任务
+        model.classifier = nn.Sequential(
+            # 新的分类器层，适配你的类别数
+            ConvBlock3D(cfg.conv7.out_channels, cfg.dense9.hidden_dim,
+                        kernel_size=(1, 1, 1), tf_like=True, causal=True, conv_type="2plus1d", bias=True),
+            Swish(),
+            nn.Dropout(p=0.2, inplace=True),
+            ConvBlock3D(cfg.dense9.hidden_dim, num_classes,  # 使用你的类别数
+                        kernel_size=(1, 1, 1), tf_like=True, causal=True, conv_type="2plus1d", bias=True),
+)
+
         """
         if pretrained:
             tf_like = True
@@ -711,6 +727,7 @@ if __name__ == '__main__':
     print("movinet_a0_cfg==", movinet_a0_cfg)
     # 加载模型（causal=True 表示流式模式）
     # model = MoViNet(movinet_a0_cfg, causal=False, pretrained=False)
+    # 注意：当 pretrained=True 时，模型会强制使用600个类别（K600数据集）
     model = MoViNet(movinet_a0_cfg, causal=True, pretrained=False, conv_type='2plus1d', num_classes=2)
     # NOTE: 模型结构加载成功.
     print("model==", model)

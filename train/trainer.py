@@ -10,6 +10,8 @@
 
 import os
 import sys
+from torch import nn
+import numpy as np
 # 添加上次目录到项目路径
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -71,7 +73,7 @@ from train.dataset import (
     adaptive_clip_strategy,
     load_video_clip_adaptive_strategy
 )
-from net.movinet import MoViNet
+from net.movinet import MoViNet, ConvBlock3D, Swish
 from net.cfg import build_movinet_a0_cfg
 from train.transforms import VideoTransform
 
@@ -277,7 +279,7 @@ def evaluate_streaming_adaptive(
                 model.clean_activation_buffers()
 
             # 获取batch级别自适应参数
-            batch_n_clips, batch_n_clip_frames = get_batch_adaptive_params(
+            batch_n_clips, batch_n_clip_frames, length_category = get_batch_adaptive_params(
                 video_paths, base_n_clips, base_n_clip_frames
             )
 
@@ -309,12 +311,6 @@ def evaluate_streaming_adaptive(
                             valid_target_indices.append(i)  # 记录有效视频索引
                         # else:
                         #     continue
-                    # # 应用变换（评估时不使用数据增强）
-                    # if isinstance(frames, list):
-                    #     frames = [torch.from_numpy(frame).float().permute(2, 0, 1) / 255.0 for frame in frames]
-                    #
-                    # if isinstance(frames, list):
-                    #     frames = torch.stack(frames).permute(1, 0, 2, 3)
 
                     except Exception as e:
                         if logger:
@@ -413,9 +409,9 @@ def train_streaming_adaptive(
     for _, targets in val_loader_temp:
         all_val_targets.extend(targets.numpy())
 
-    import numpy as np
-    unique_targets, counts = np.unique(all_val_targets, return_counts=True)
-    my_logger.info(f"Validation target distribution: {dict(zip(unique_targets, counts))}")
+
+    # unique_targets, counts = np.unique(all_val_targets, return_counts=True)
+    # my_logger.info(f"Validation target distribution: {dict(zip(unique_targets, counts))}")
 
 
     # 检查训练集标签分布
@@ -426,19 +422,34 @@ def train_streaming_adaptive(
         unique, counts = np.unique(targets, return_counts=True)
         my_logger.info(f"{label_name} target distribution: {dict(zip(unique, counts))}")
 
-    analyze_distribution(DataLoader(train_dataset, batch_size=batch_size, shuffle=False, num_workers=2), "Training")
-    analyze_distribution(DataLoader(val_dataset, batch_size=batch_size, shuffle=False, num_workers=2), "Validation")
+    analyze_distribution(DataLoader(train_dataset, batch_size=batch_size, shuffle=False, num_workers=4), "Training")
+    analyze_distribution(DataLoader(val_dataset, batch_size=batch_size, shuffle=False, num_workers=4), "Validation")
 
 
 
     # 构建数据加载器
-    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=2)
-    val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False, num_workers=2)
+    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=4)
+    val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False, num_workers=4)
 
     # 模型初始化
     cfg = build_movinet_a0_cfg()
-    model = MoViNet(cfg, causal=True, pretrained=True, num_classes=num_classes, conv_type="2plus1d", tf_like=True)
+    # my_logger.info(f"model classes={num_classes}")
+    # 注意：当 pretrained=True 时，模型会强制使用600个类别（K600数据集）
+    # model = MoViNet(cfg, causal=True, pretrained=False, num_classes=num_classes, conv_type="2plus1d", tf_like=True)# 先加载预训练模型
+    model = MoViNet(cfg, causal=True, pretrained=True, conv_type="2plus1d", tf_like=True)
+
+    # 然后替换分类器以适应你的任务
+    model.classifier = nn.Sequential(
+        # 新的分类器层，适配你的类别数
+        ConvBlock3D(cfg.conv7.out_channels, cfg.dense9.hidden_dim,
+                    kernel_size=(1, 1, 1), tf_like=True, causal=True, conv_type="2plus1d", bias=True),
+        Swish(),
+        nn.Dropout(p=0.2, inplace=True),
+        ConvBlock3D(cfg.dense9.hidden_dim, num_classes,  # 使用实际的类别数
+                    kernel_size=(1, 1, 1), tf_like=True, causal=True, conv_type="2plus1d", bias=True),
+)
     model = model.to(device)
+    # my_logger.info(f"Model : {model}")
 
     # 优化器和学习率调度器
     optimizer = optim.AdamW(model.parameters(), lr=learning_rate, weight_decay=1e-5)
@@ -511,7 +522,7 @@ if __name__ == "__main__":
         'val_root': '/home/kend/Guanxin/work/workspace/movinet-pytorch/dataset/val',
         # 'data_root': '/home/kend/Guanxin/Datasets/dataset/classes/movinet-pet-destruction-video/hmdb_test/train',
         # 'val_root': '/home/kend/Guanxin/Datasets/dataset/classes/movinet-pet-destruction-video/hmdb_test/val',
-        'batch_size': 2,
+        'batch_size': 1,
         'num_epochs': 100,
         'learning_rate': 3e-4,
         'num_classes': 2,
