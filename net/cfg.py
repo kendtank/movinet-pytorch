@@ -35,8 +35,10 @@ def build_movinet_a0_cfg():
     cfg_dict = {
         "name": "A0",
         # "weights": "https://github.com/Atze00/MoViNet-pytorch/blob/main/weights/modelA0_statedict_v3?raw=true",
-        "weights": "/home/kend/Guanxin/work/workspace/movinet-pytorch/net/modelA0_statedict",
-        "stream_weights": "https://github.com/Atze00/MoViNet-pytorch/blob/main/weights/modelA0_stream_statedict_v3?raw=true",
+        "weights": "/home/kend/Guanxin/work/workspace/movinet-pytorch/checkpoints/movinet_best.pth",
+        "stream_weights": "/home/kend/Guanxin/work/workspace/movinet-pytorch/checkpoints/movinet_best.pth",
+        # "stream_weights": "https://github.com/Atze00/MoViNet-pytorch/blob/main/weights/modelA0_stream_statedict_v3?raw=true",
+
 
         # conv1
         "conv1": {

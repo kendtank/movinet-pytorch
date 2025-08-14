@@ -9,60 +9,71 @@
 
 
 """
-ONNX 格式
-TensorFlow Lite 格式（用于部署在边缘设备）
+将生成的ONNX文件转换为MCU支持的格式（如TensorFlow Lite Micro）
+
+PyTorch → ONNX → TensorFlow → TensorFlow Lite 转换流程 
+
+# MCU部署前的检查清单
+MCU_DEPLOYMENT_CHECKLIST = {
+    "模型大小": "确保模型适合MCU内存（通常<10MB）",
+    "计算复杂度": "检查FLOPs是否适合MCU计算能力",
+    "输入尺寸": "确认输入尺寸（如224x224）是否适合MCU",
+    "量化精度": "验证INT8量化后的精度损失",
+    "推理时间": "测试单次推理时间是否满足实时要求",
+    "内存使用": "监控推理过程中的内存峰值"
+}
+
 """
 
-import torch
-from net.movinet import MoViNet
-from net.cfg import build_movinet_a0_cfg
 
+def optimize_movinet_for_mcu(model_path='checkpoints/movinet_best.pth'):
+    """
+    完整的MCU优化流程
+    """
+    print("=== MoViNet MCU优化流程 ===")
 
-
-def export_to_onnx(model, save_path='movinet.onnx'):
-    dummy_input = torch.randn(1, 3, 8, 224, 224)  # B, C, T, H, W
-    torch.onnx.export(
-        model,
-        dummy_input,
-        save_path,
-        export_params=True,
-        opset_version=13,
-        do_constant_folding=True,
-        input_names=['input'],
-        output_names=['output'],
-        dynamic_axes={
-            'input': {2: 'T'},  # 可变帧数
-            'output': {}
-        }
-    )
-    print(f"ONNX 模型已保存到 {save_path}")
-
-
-def export_to_tflite(model, save_path='movinet.tflite'):
-    model.eval()
-    dummy_input = torch.randn(1, 3, 8, 224, 224)
-
-    # 导出 TorchScript
-    script_model = torch.jit.script(model)
-    torch.jit.save(script_model, 'movinet_script.pt')
-
-    # 使用 TorchScript 转换为 TFLite（需安装 torchscript2tflite）
-
-    # 常规做法是使用转换工具或导出为 ONNX 再转 TFLite # TODO
-    print(f"TFLite 模型已保存到 {save_path}")
-
-
-
-
-if __name__ == '__main__':
-    # 加载模型
+    # 1. 加载模型
+    print("1. 加载原始模型...")
     cfg = build_movinet_a0_cfg()
     model = MoViNet(cfg, causal=True, pretrained=False, num_classes=2, conv_type="2plus1d", tf_like=True)
-    model.load_state_dict(torch.load('checkpoints/movinet_best.pth'))
+    model.load_state_dict(torch.load(model_path))
     model.eval()
 
-    # 导出 ONNX
-    export_to_onnx(model)
+    # 2. 量化为INT8
+    print("2. 模型量化为INT8...")
+    quantized_model = quantize_movinet_for_mcu(model)
 
-    # 导出 TFLite（需 ONNX 转换）
-    export_to_tflite(model)
+    # 3. 剪枝冗余参数
+    print("3. 剪枝冗余参数...")
+    pruned_model = prune_movinet_redundant_weights(quantized_model, pruning_ratio=0.2)
+    pruned_model = remove_pruning_reparametrization(pruned_model)
+
+    # 4. 验证模型输出
+    print("4. 验证优化后模型...")
+    dummy_input = torch.randn(1, 3, 16, 224, 224)
+    with torch.no_grad():
+        original_output = model(dummy_input)
+        optimized_output = pruned_model(dummy_input)
+
+        # 检查输出差异
+        diff = torch.abs(original_output - optimized_output).mean()
+        print(f"优化前后输出差异: {diff.item():.6f}")
+
+    # 5. 保存优化后的模型
+    print("5. 保存优化模型...")
+    save_quantized_model(pruned_model, 'checkpoints/movinet_mcu_optimized.pth')
+
+    # 6. 导出ONNX
+    print("6. 导出ONNX格式...")
+    export_quantized_model_to_onnx(pruned_model, 'checkpoints/movinet_mcu_optimized.onnx')
+
+    print("=== MCU优化完成 ===")
+    return pruned_model
+
+
+# 使用示例
+if __name__ == "__main__":
+    optimized_model = optimize_movinet_for_mcu()
+
+
+

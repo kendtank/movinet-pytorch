@@ -728,6 +728,7 @@ if __name__ == '__main__':
     # 加载模型（causal=True 表示流式模式）
     # model = MoViNet(movinet_a0_cfg, causal=False, pretrained=False)
     # 注意：当 pretrained=True 时，模型会强制使用600个类别（K600数据集）
+    # model = MoViNet(movinet_a0_cfg, causal=True, pretrained=False, conv_type='2plus1d', num_classes=2)
     model = MoViNet(movinet_a0_cfg, causal=True, pretrained=False, conv_type='2plus1d', num_classes=2)
     # NOTE: 模型结构加载成功.
     print("model==", model)

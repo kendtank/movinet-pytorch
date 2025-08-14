@@ -440,22 +440,22 @@ def train_streaming_adaptive(
     model = MoViNet(
         cfg,
         causal=True,  # 因果模式
-        pretrained=True,  # 使用预训练权重
+        pretrained=False,  # 使用预训练权重
         num_classes=num_classes,  # 明确类别数
         conv_type="2plus1d",  # 2+1D卷积
         tf_like=True  # TensorFlow风格
     )
 
     # 然后替换分类器以适应你的任务
-    model.classifier = nn.Sequential(
-        # 新的分类器层，适配你的类别数
-        ConvBlock3D(cfg.conv7.out_channels, cfg.dense9.hidden_dim,
-                    kernel_size=(1, 1, 1), tf_like=True, causal=True, conv_type="2plus1d", bias=True),
-        Swish(),
-        nn.Dropout(p=0.2, inplace=True),
-        ConvBlock3D(cfg.dense9.hidden_dim, num_classes,  # 使用实际的类别数
-                    kernel_size=(1, 1, 1), tf_like=True, causal=True, conv_type="2plus1d", bias=True),
-)
+#     model.classifier = nn.Sequential(
+#         # 新的分类器层，适配你的类别数
+#         ConvBlock3D(cfg.conv7.out_channels, cfg.dense9.hidden_dim,
+#                     kernel_size=(1, 1, 1), tf_like=True, causal=True, conv_type="2plus1d", bias=True),
+#         Swish(),
+#         nn.Dropout(p=0.2, inplace=True),
+#         ConvBlock3D(cfg.dense9.hidden_dim, num_classes,  # 使用实际的类别数
+#                     kernel_size=(1, 1, 1), tf_like=True, causal=True, conv_type="2plus1d", bias=True),
+# )
     model = model.to(device)
     # my_logger.info(f"Model : {model}")
 
@@ -531,7 +531,7 @@ if __name__ == "__main__":
         # 'data_root': '/home/kend/Guanxin/Datasets/dataset/classes/movinet-pet-destruction-video/hmdb_test/train',
         # 'val_root': '/home/kend/Guanxin/Datasets/dataset/classes/movinet-pet-destruction-video/hmdb_test/val',
         'batch_size': 1,
-        'num_epochs': 100,
+        'num_epochs': 10,
         'learning_rate': 3e-4,
         'num_classes': 2,
         'base_n_clips': 8,
@@ -543,3 +543,21 @@ if __name__ == "__main__":
 
     # 开始训练
     trained_model = train_streaming_adaptive(**config)
+
+    """
+    测试：
+        1：使用流模式， conv_type = "2plus1d"， 测试导出onnx ops = 11
+        问题：
+            MoViNet 在剪枝后导出 ONNX 出现的主要问题是 自适应池化输出大小非常量 + einops 的 rearrange / reduce + SE 模块里的动态计算 导致 TorchScript / trace 都不稳定。
+        解决办法：
+            1, 添加参数来解决einops和adaptive pooling问题
+            operator_export_type=torch.onnx.OperatorExportTypes.ONNX_ATEN_FALLBACK,
+            但是解决了导出了的问题， 但是以来pytorch的算子，对于端侧部署是不适用的。
+            2, ONNX 导出要求 AdaptiveAvgPool / AdaptiveMaxPool 的 output_size 必须是常量（tuple）
+            self.avg_pool = nn.AdaptiveAvgPool3d((None, 1, 1)) 改为：self.avg_pool = nn.AdaptiveAvgPool3d((T, 1, 1))  # T是你推理时固定的时间步数，比如8
+
+
+        2：取消流模式， conv_type = "2plus1d"， 测试导出onnx ops = 11
+        ,,,,,分析导出问题的原因
+        3：
+    """
