@@ -1,0 +1,63 @@
+# 数据集
+/dataset/
+
+# 模型检查点和权重
+/checkpoints/
+/train/checkpoints/
+
+# 训练日志和结果
+/train/runs/
+
+# IDE配置文件
+.idea/
+.vscode/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# 操作系统文件
+.DS_Store
+Thumbs.db
+
+# 虚拟环境
+venv/
+env/
+*.egg-info/
+
+# 临时文件
+*.pyc
+__pycache__/
+
+# 视频文件
+*.mp4
+*.avi
+*.mov
+
+# 其他大型文件
+*.pth
+*.onnx
+*.weights
+
+# 日志文件
+*.log
+*.log.*
+
+# 环境变量文件
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# 构建输出
+build/
+dist/
+
+# 缓存
+.cache/
+.temp/
+
+# 本地配置
+local_settings.py
