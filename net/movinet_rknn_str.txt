@@ -1,0 +1,669 @@
+(ai) D:\work\code\movinet-pytorch\net>python movinet_rknn.py --export none --T 16 --H 224 --W 224 --num-classes 2
+model:: MoViNetRKNNA0(
+  (conv1): ConvBlock2DTemporal(
+    (spatial_conv): Conv2dBNActivation(
+      (conv): Conv2d(3, 8, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1), bias=False)
+      (bn): BatchNorm2d(8, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+      (act): Swish()
+    )
+    (temporal_conv): Identity()
+  )
+  (blocks): Sequential(
+    (0): BasicBneckTemporal(
+      (expand): ConvBlock2DTemporal(
+        (spatial_conv): Conv2dBNActivation(
+          (conv): Conv2d(8, 24, kernel_size=(5, 5), stride=(2, 2), padding=(2, 2), bias=False)
+          (bn): BatchNorm2d(24, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (act): Swish()
+        )
+        (temporal_conv): Identity()
+      )
+      (deep): ConvBlock2DTemporal(
+        (spatial_conv): Conv2dBNActivation(
+          (conv): Conv2d(24, 24, kernel_size=(5, 5), stride=(1, 1), padding=(2, 2), bias=False)
+          (bn): BatchNorm2d(24, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (act): Swish()
+        )
+        (temporal_conv): Identity()
+      )
+      (se): SqueezeExcitationTemporal(
+        (fc1): Conv1d(24, 8, kernel_size=(1,), stride=(1,))
+        (bn1): BatchNorm1d(8, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (act1): Swish()
+        (fc2): Conv1d(8, 24, kernel_size=(1,), stride=(1,))
+        (bn2): BatchNorm1d(24, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (act2): Hardsigmoid()
+      )
+      (project): ConvBlock2DTemporal(
+        (spatial_conv): Conv2dBNActivation(
+          (conv): Conv2d(24, 8, kernel_size=(1, 1), stride=(1, 1), bias=False)
+          (bn): BatchNorm2d(8, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (act): Identity()
+        )
+        (temporal_conv): Identity()
+      )
+      (shortcut): ConvBlock2DTemporal(
+        (spatial_conv): Conv2dBNActivation(
+          (conv): Conv2d(8, 8, kernel_size=(1, 1), stride=(2, 2), bias=False)
+          (bn): BatchNorm2d(8, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (act): Identity()
+        )
+        (temporal_conv): Identity()
+      )
+    )
+    (1): BasicBneckTemporal(
+      (expand): ConvBlock2DTemporal(
+        (spatial_conv): Conv2dBNActivation(
+          (conv): Conv2d(8, 80, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1), bias=False)
+          (bn): BatchNorm2d(80, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (act): Swish()
+        )
+        (temporal_conv): TemporalConv1D(
+          (conv): Conv1d(80, 80, kernel_size=(3,), stride=(1,), padding=(1,), groups=80)
+          (bn): BatchNorm1d(80, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (act): Swish()
+        )
+      )
+      (deep): ConvBlock2DTemporal(
+        (spatial_conv): Conv2dBNActivation(
+          (conv): Conv2d(80, 80, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+          (bn): BatchNorm2d(80, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (act): Swish()
+        )
+        (temporal_conv): TemporalConv1D(
+          (conv): Conv1d(80, 80, kernel_size=(3,), stride=(1,), padding=(1,), groups=80)
+          (bn): BatchNorm1d(80, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (act): Swish()
+        )
+      )
+      (se): SqueezeExcitationTemporal(
+        (fc1): Conv1d(80, 20, kernel_size=(1,), stride=(1,))
+        (bn1): BatchNorm1d(20, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (act1): Swish()
+        (fc2): Conv1d(20, 80, kernel_size=(1,), stride=(1,))
+        (bn2): BatchNorm1d(80, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (act2): Hardsigmoid()
+      )
+      (project): ConvBlock2DTemporal(
+        (spatial_conv): Conv2dBNActivation(
+          (conv): Conv2d(80, 32, kernel_size=(1, 1), stride=(1, 1), bias=False)
+          (bn): BatchNorm2d(32, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (act): Identity()
+        )
+        (temporal_conv): Identity()
+      )
+      (shortcut): ConvBlock2DTemporal(
+        (spatial_conv): Conv2dBNActivation(
+          (conv): Conv2d(8, 32, kernel_size=(1, 1), stride=(2, 2), bias=False)
+          (bn): BatchNorm2d(32, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (act): Identity()
+        )
+        (temporal_conv): Identity()
+      )
+    )
+    (2): BasicBneckTemporal(
+      (expand): ConvBlock2DTemporal(
+        (spatial_conv): Conv2dBNActivation(
+          (conv): Conv2d(32, 80, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+          (bn): BatchNorm2d(80, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (act): Swish()
+        )
+        (temporal_conv): TemporalConv1D(
+          (conv): Conv1d(80, 80, kernel_size=(3,), stride=(1,), padding=(1,), groups=80)
+          (bn): BatchNorm1d(80, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (act): Swish()
+        )
+      )
+      (deep): ConvBlock2DTemporal(
+        (spatial_conv): Conv2dBNActivation(
+          (conv): Conv2d(80, 80, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+          (bn): BatchNorm2d(80, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (act): Swish()
+        )
+        (temporal_conv): TemporalConv1D(
+          (conv): Conv1d(80, 80, kernel_size=(3,), stride=(1,), padding=(1,), groups=80)
+          (bn): BatchNorm1d(80, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (act): Swish()
+        )
+      )
+      (se): SqueezeExcitationTemporal(
+        (fc1): Conv1d(80, 20, kernel_size=(1,), stride=(1,))
+        (bn1): BatchNorm1d(20, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (act1): Swish()
+        (fc2): Conv1d(20, 80, kernel_size=(1,), stride=(1,))
+        (bn2): BatchNorm1d(80, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (act2): Hardsigmoid()
+      )
+      (project): ConvBlock2DTemporal(
+        (spatial_conv): Conv2dBNActivation(
+          (conv): Conv2d(80, 32, kernel_size=(1, 1), stride=(1, 1), bias=False)
+          (bn): BatchNorm2d(32, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (act): Identity()
+        )
+        (temporal_conv): Identity()
+      )
+      (shortcut): Identity()
+    )
+    (3): BasicBneckTemporal(
+      (expand): ConvBlock2DTemporal(
+        (spatial_conv): Conv2dBNActivation(
+          (conv): Conv2d(32, 80, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+          (bn): BatchNorm2d(80, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (act): Swish()
+        )
+        (temporal_conv): TemporalConv1D(
+          (conv): Conv1d(80, 80, kernel_size=(3,), stride=(1,), padding=(1,), groups=80)
+          (bn): BatchNorm1d(80, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (act): Swish()
+        )
+      )
+      (deep): ConvBlock2DTemporal(
+        (spatial_conv): Conv2dBNActivation(
+          (conv): Conv2d(80, 80, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+          (bn): BatchNorm2d(80, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (act): Swish()
+        )
+        (temporal_conv): TemporalConv1D(
+          (conv): Conv1d(80, 80, kernel_size=(3,), stride=(1,), padding=(1,), groups=80)
+          (bn): BatchNorm1d(80, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (act): Swish()
+        )
+      )
+      (se): SqueezeExcitationTemporal(
+        (fc1): Conv1d(80, 20, kernel_size=(1,), stride=(1,))
+        (bn1): BatchNorm1d(20, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (act1): Swish()
+        (fc2): Conv1d(20, 80, kernel_size=(1,), stride=(1,))
+        (bn2): BatchNorm1d(80, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (act2): Hardsigmoid()
+      )
+      (project): ConvBlock2DTemporal(
+        (spatial_conv): Conv2dBNActivation(
+          (conv): Conv2d(80, 32, kernel_size=(1, 1), stride=(1, 1), bias=False)
+          (bn): BatchNorm2d(32, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (act): Identity()
+        )
+        (temporal_conv): Identity()
+      )
+      (shortcut): Identity()
+    )
+    (4): BasicBneckTemporal(
+      (expand): ConvBlock2DTemporal(
+        (spatial_conv): Conv2dBNActivation(
+          (conv): Conv2d(32, 184, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1), bias=False)
+          (bn): BatchNorm2d(184, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (act): Swish()
+        )
+        (temporal_conv): TemporalConv1D(
+          (conv): Conv1d(184, 184, kernel_size=(5,), stride=(1,), padding=(2,), groups=184)
+          (bn): BatchNorm1d(184, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (act): Swish()
+        )
+      )
+      (deep): ConvBlock2DTemporal(
+        (spatial_conv): Conv2dBNActivation(
+          (conv): Conv2d(184, 184, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+          (bn): BatchNorm2d(184, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (act): Swish()
+        )
+        (temporal_conv): TemporalConv1D(
+          (conv): Conv1d(184, 184, kernel_size=(5,), stride=(1,), padding=(2,), groups=184)
+          (bn): BatchNorm1d(184, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (act): Swish()
+        )
+      )
+      (se): SqueezeExcitationTemporal(
+        (fc1): Conv1d(184, 46, kernel_size=(1,), stride=(1,))
+        (bn1): BatchNorm1d(46, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (act1): Swish()
+        (fc2): Conv1d(46, 184, kernel_size=(1,), stride=(1,))
+        (bn2): BatchNorm1d(184, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (act2): Hardsigmoid()
+      )
+      (project): ConvBlock2DTemporal(
+        (spatial_conv): Conv2dBNActivation(
+          (conv): Conv2d(184, 56, kernel_size=(1, 1), stride=(1, 1), bias=False)
+          (bn): BatchNorm2d(56, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (act): Identity()
+        )
+        (temporal_conv): Identity()
+      )
+      (shortcut): ConvBlock2DTemporal(
+        (spatial_conv): Conv2dBNActivation(
+          (conv): Conv2d(32, 56, kernel_size=(1, 1), stride=(2, 2), bias=False)
+          (bn): BatchNorm2d(56, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (act): Identity()
+        )
+        (temporal_conv): Identity()
+      )
+    )
+    (5): BasicBneckTemporal(
+      (expand): ConvBlock2DTemporal(
+        (spatial_conv): Conv2dBNActivation(
+          (conv): Conv2d(56, 112, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+          (bn): BatchNorm2d(112, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (act): Swish()
+        )
+        (temporal_conv): TemporalConv1D(
+          (conv): Conv1d(112, 112, kernel_size=(3,), stride=(1,), padding=(1,), groups=112)
+          (bn): BatchNorm1d(112, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (act): Swish()
+        )
+      )
+      (deep): ConvBlock2DTemporal(
+        (spatial_conv): Conv2dBNActivation(
+          (conv): Conv2d(112, 112, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+          (bn): BatchNorm2d(112, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (act): Swish()
+        )
+        (temporal_conv): TemporalConv1D(
+          (conv): Conv1d(112, 112, kernel_size=(3,), stride=(1,), padding=(1,), groups=112)
+          (bn): BatchNorm1d(112, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (act): Swish()
+        )
+      )
+      (se): SqueezeExcitationTemporal(
+        (fc1): Conv1d(112, 28, kernel_size=(1,), stride=(1,))
+        (bn1): BatchNorm1d(28, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (act1): Swish()
+        (fc2): Conv1d(28, 112, kernel_size=(1,), stride=(1,))
+        (bn2): BatchNorm1d(112, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (act2): Hardsigmoid()
+      )
+      (project): ConvBlock2DTemporal(
+        (spatial_conv): Conv2dBNActivation(
+          (conv): Conv2d(112, 56, kernel_size=(1, 1), stride=(1, 1), bias=False)
+          (bn): BatchNorm2d(56, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (act): Identity()
+        )
+        (temporal_conv): Identity()
+      )
+      (shortcut): Identity()
+    )
+    (6): BasicBneckTemporal(
+      (expand): ConvBlock2DTemporal(
+        (spatial_conv): Conv2dBNActivation(
+          (conv): Conv2d(56, 184, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+          (bn): BatchNorm2d(184, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (act): Swish()
+        )
+        (temporal_conv): TemporalConv1D(
+          (conv): Conv1d(184, 184, kernel_size=(3,), stride=(1,), padding=(1,), groups=184)
+          (bn): BatchNorm1d(184, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (act): Swish()
+        )
+      )
+      (deep): ConvBlock2DTemporal(
+        (spatial_conv): Conv2dBNActivation(
+          (conv): Conv2d(184, 184, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+          (bn): BatchNorm2d(184, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (act): Swish()
+        )
+        (temporal_conv): TemporalConv1D(
+          (conv): Conv1d(184, 184, kernel_size=(3,), stride=(1,), padding=(1,), groups=184)
+          (bn): BatchNorm1d(184, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (act): Swish()
+        )
+      )
+      (se): SqueezeExcitationTemporal(
+        (fc1): Conv1d(184, 46, kernel_size=(1,), stride=(1,))
+        (bn1): BatchNorm1d(46, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (act1): Swish()
+        (fc2): Conv1d(46, 184, kernel_size=(1,), stride=(1,))
+        (bn2): BatchNorm1d(184, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (act2): Hardsigmoid()
+      )
+      (project): ConvBlock2DTemporal(
+        (spatial_conv): Conv2dBNActivation(
+          (conv): Conv2d(184, 56, kernel_size=(1, 1), stride=(1, 1), bias=False)
+          (bn): BatchNorm2d(56, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (act): Identity()
+        )
+        (temporal_conv): Identity()
+      )
+      (shortcut): Identity()
+    )
+    (7): BasicBneckTemporal(
+      (expand): ConvBlock2DTemporal(
+        (spatial_conv): Conv2dBNActivation(
+          (conv): Conv2d(56, 184, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+          (bn): BatchNorm2d(184, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (act): Swish()
+        )
+        (temporal_conv): TemporalConv1D(
+          (conv): Conv1d(184, 184, kernel_size=(5,), stride=(1,), padding=(2,), groups=184)
+          (bn): BatchNorm1d(184, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (act): Swish()
+        )
+      )
+      (deep): ConvBlock2DTemporal(
+        (spatial_conv): Conv2dBNActivation(
+          (conv): Conv2d(184, 184, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+          (bn): BatchNorm2d(184, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (act): Swish()
+        )
+        (temporal_conv): TemporalConv1D(
+          (conv): Conv1d(184, 184, kernel_size=(5,), stride=(1,), padding=(2,), groups=184)
+          (bn): BatchNorm1d(184, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (act): Swish()
+        )
+      )
+      (se): SqueezeExcitationTemporal(
+        (fc1): Conv1d(184, 46, kernel_size=(1,), stride=(1,))
+        (bn1): BatchNorm1d(46, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (act1): Swish()
+        (fc2): Conv1d(46, 184, kernel_size=(1,), stride=(1,))
+        (bn2): BatchNorm1d(184, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (act2): Hardsigmoid()
+      )
+      (project): ConvBlock2DTemporal(
+        (spatial_conv): Conv2dBNActivation(
+          (conv): Conv2d(184, 56, kernel_size=(1, 1), stride=(1, 1), bias=False)
+          (bn): BatchNorm2d(56, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (act): Identity()
+        )
+        (temporal_conv): Identity()
+      )
+      (shortcut): Identity()
+    )
+    (8): BasicBneckTemporal(
+      (expand): ConvBlock2DTemporal(
+        (spatial_conv): Conv2dBNActivation(
+          (conv): Conv2d(56, 184, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+          (bn): BatchNorm2d(184, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (act): Swish()
+        )
+        (temporal_conv): TemporalConv1D(
+          (conv): Conv1d(184, 184, kernel_size=(3,), stride=(1,), padding=(1,), groups=184)
+          (bn): BatchNorm1d(184, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (act): Swish()
+        )
+      )
+      (deep): ConvBlock2DTemporal(
+        (spatial_conv): Conv2dBNActivation(
+          (conv): Conv2d(184, 184, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+          (bn): BatchNorm2d(184, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (act): Swish()
+        )
+        (temporal_conv): TemporalConv1D(
+          (conv): Conv1d(184, 184, kernel_size=(3,), stride=(1,), padding=(1,), groups=184)
+          (bn): BatchNorm1d(184, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (act): Swish()
+        )
+      )
+      (se): SqueezeExcitationTemporal(
+        (fc1): Conv1d(184, 46, kernel_size=(1,), stride=(1,))
+        (bn1): BatchNorm1d(46, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (act1): Swish()
+        (fc2): Conv1d(46, 184, kernel_size=(1,), stride=(1,))
+        (bn2): BatchNorm1d(184, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (act2): Hardsigmoid()
+      )
+      (project): ConvBlock2DTemporal(
+        (spatial_conv): Conv2dBNActivation(
+          (conv): Conv2d(184, 56, kernel_size=(1, 1), stride=(1, 1), bias=False)
+          (bn): BatchNorm2d(56, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (act): Identity()
+        )
+        (temporal_conv): Identity()
+      )
+      (shortcut): Identity()
+    )
+    (9): BasicBneckTemporal(
+      (expand): ConvBlock2DTemporal(
+        (spatial_conv): Conv2dBNActivation(
+          (conv): Conv2d(56, 184, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+          (bn): BatchNorm2d(184, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (act): Swish()
+        )
+        (temporal_conv): TemporalConv1D(
+          (conv): Conv1d(184, 184, kernel_size=(3,), stride=(1,), padding=(1,), groups=184)
+          (bn): BatchNorm1d(184, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (act): Swish()
+        )
+      )
+      (deep): ConvBlock2DTemporal(
+        (spatial_conv): Conv2dBNActivation(
+          (conv): Conv2d(184, 184, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+          (bn): BatchNorm2d(184, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (act): Swish()
+        )
+        (temporal_conv): TemporalConv1D(
+          (conv): Conv1d(184, 184, kernel_size=(3,), stride=(1,), padding=(1,), groups=184)
+          (bn): BatchNorm1d(184, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (act): Swish()
+        )
+      )
+      (se): SqueezeExcitationTemporal(
+        (fc1): Conv1d(184, 46, kernel_size=(1,), stride=(1,))
+        (bn1): BatchNorm1d(46, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (act1): Swish()
+        (fc2): Conv1d(46, 184, kernel_size=(1,), stride=(1,))
+        (bn2): BatchNorm1d(184, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (act2): Hardsigmoid()
+      )
+      (project): ConvBlock2DTemporal(
+        (spatial_conv): Conv2dBNActivation(
+          (conv): Conv2d(184, 56, kernel_size=(1, 1), stride=(1, 1), bias=False)
+          (bn): BatchNorm2d(56, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (act): Identity()
+        )
+        (temporal_conv): Identity()
+      )
+      (shortcut): Identity()
+    )
+    (10): BasicBneckTemporal(
+      (expand): ConvBlock2DTemporal(
+        (spatial_conv): Conv2dBNActivation(
+          (conv): Conv2d(56, 184, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+          (bn): BatchNorm2d(184, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (act): Swish()
+        )
+        (temporal_conv): TemporalConv1D(
+          (conv): Conv1d(184, 184, kernel_size=(3,), stride=(1,), padding=(1,), groups=184)
+          (bn): BatchNorm1d(184, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (act): Swish()
+        )
+      )
+      (deep): ConvBlock2DTemporal(
+        (spatial_conv): Conv2dBNActivation(
+          (conv): Conv2d(184, 184, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+          (bn): BatchNorm2d(184, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (act): Swish()
+        )
+        (temporal_conv): TemporalConv1D(
+          (conv): Conv1d(184, 184, kernel_size=(3,), stride=(1,), padding=(1,), groups=184)
+          (bn): BatchNorm1d(184, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (act): Swish()
+        )
+      )
+      (se): SqueezeExcitationTemporal(
+        (fc1): Conv1d(184, 46, kernel_size=(1,), stride=(1,))
+        (bn1): BatchNorm1d(46, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (act1): Swish()
+        (fc2): Conv1d(46, 184, kernel_size=(1,), stride=(1,))
+        (bn2): BatchNorm1d(184, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (act2): Hardsigmoid()
+      )
+      (project): ConvBlock2DTemporal(
+        (spatial_conv): Conv2dBNActivation(
+          (conv): Conv2d(184, 56, kernel_size=(1, 1), stride=(1, 1), bias=False)
+          (bn): BatchNorm2d(56, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (act): Identity()
+        )
+        (temporal_conv): Identity()
+      )
+      (shortcut): Identity()
+    )
+    (11): BasicBneckTemporal(
+      (expand): ConvBlock2DTemporal(
+        (spatial_conv): Conv2dBNActivation(
+          (conv): Conv2d(56, 384, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1), bias=False)
+          (bn): BatchNorm2d(384, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (act): Swish()
+        )
+        (temporal_conv): TemporalConv1D(
+          (conv): Conv1d(384, 384, kernel_size=(5,), stride=(1,), padding=(2,), groups=384)
+          (bn): BatchNorm1d(384, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (act): Swish()
+        )
+      )
+      (deep): ConvBlock2DTemporal(
+        (spatial_conv): Conv2dBNActivation(
+          (conv): Conv2d(384, 384, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+          (bn): BatchNorm2d(384, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (act): Swish()
+        )
+        (temporal_conv): TemporalConv1D(
+          (conv): Conv1d(384, 384, kernel_size=(5,), stride=(1,), padding=(2,), groups=384)
+          (bn): BatchNorm1d(384, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (act): Swish()
+        )
+      )
+      (se): SqueezeExcitationTemporal(
+        (fc1): Conv1d(384, 96, kernel_size=(1,), stride=(1,))
+        (bn1): BatchNorm1d(96, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (act1): Swish()
+        (fc2): Conv1d(96, 384, kernel_size=(1,), stride=(1,))
+        (bn2): BatchNorm1d(384, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (act2): Hardsigmoid()
+      )
+      (project): ConvBlock2DTemporal(
+        (spatial_conv): Conv2dBNActivation(
+          (conv): Conv2d(384, 104, kernel_size=(1, 1), stride=(1, 1), bias=False)
+          (bn): BatchNorm2d(104, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (act): Identity()
+        )
+        (temporal_conv): Identity()
+      )
+      (shortcut): ConvBlock2DTemporal(
+        (spatial_conv): Conv2dBNActivation(
+          (conv): Conv2d(56, 104, kernel_size=(1, 1), stride=(2, 2), bias=False)
+          (bn): BatchNorm2d(104, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (act): Identity()
+        )
+        (temporal_conv): Identity()
+      )
+    )
+    (12): BasicBneckTemporal(
+      (expand): ConvBlock2DTemporal(
+        (spatial_conv): Conv2dBNActivation(
+          (conv): Conv2d(104, 280, kernel_size=(5, 5), stride=(1, 1), padding=(2, 2), bias=False)
+          (bn): BatchNorm2d(280, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (act): Swish()
+        )
+        (temporal_conv): Identity()
+      )
+      (deep): ConvBlock2DTemporal(
+        (spatial_conv): Conv2dBNActivation(
+          (conv): Conv2d(280, 280, kernel_size=(5, 5), stride=(1, 1), padding=(2, 2), bias=False)
+          (bn): BatchNorm2d(280, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (act): Swish()
+        )
+        (temporal_conv): Identity()
+      )
+      (se): SqueezeExcitationTemporal(
+        (fc1): Conv1d(280, 70, kernel_size=(1,), stride=(1,))
+        (bn1): BatchNorm1d(70, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (act1): Swish()
+        (fc2): Conv1d(70, 280, kernel_size=(1,), stride=(1,))
+        (bn2): BatchNorm1d(280, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (act2): Hardsigmoid()
+      )
+      (project): ConvBlock2DTemporal(
+        (spatial_conv): Conv2dBNActivation(
+          (conv): Conv2d(280, 104, kernel_size=(1, 1), stride=(1, 1), bias=False)
+          (bn): BatchNorm2d(104, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (act): Identity()
+        )
+        (temporal_conv): Identity()
+      )
+      (shortcut): Identity()
+    )
+    (13): BasicBneckTemporal(
+      (expand): ConvBlock2DTemporal(
+        (spatial_conv): Conv2dBNActivation(
+          (conv): Conv2d(104, 280, kernel_size=(5, 5), stride=(1, 1), padding=(2, 2), bias=False)
+          (bn): BatchNorm2d(280, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (act): Swish()
+        )
+        (temporal_conv): Identity()
+      )
+      (deep): ConvBlock2DTemporal(
+        (spatial_conv): Conv2dBNActivation(
+          (conv): Conv2d(280, 280, kernel_size=(5, 5), stride=(1, 1), padding=(2, 2), bias=False)
+          (bn): BatchNorm2d(280, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (act): Swish()
+        )
+        (temporal_conv): Identity()
+      )
+      (se): SqueezeExcitationTemporal(
+        (fc1): Conv1d(280, 70, kernel_size=(1,), stride=(1,))
+        (bn1): BatchNorm1d(70, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (act1): Swish()
+        (fc2): Conv1d(70, 280, kernel_size=(1,), stride=(1,))
+        (bn2): BatchNorm1d(280, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (act2): Hardsigmoid()
+      )
+      (project): ConvBlock2DTemporal(
+        (spatial_conv): Conv2dBNActivation(
+          (conv): Conv2d(280, 104, kernel_size=(1, 1), stride=(1, 1), bias=False)
+          (bn): BatchNorm2d(104, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (act): Identity()
+        )
+        (temporal_conv): Identity()
+      )
+      (shortcut): Identity()
+    )
+    (14): BasicBneckTemporal(
+      (expand): ConvBlock2DTemporal(
+        (spatial_conv): Conv2dBNActivation(
+          (conv): Conv2d(104, 344, kernel_size=(5, 5), stride=(1, 1), padding=(2, 2), bias=False)
+          (bn): BatchNorm2d(344, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (act): Swish()
+        )
+        (temporal_conv): Identity()
+      )
+      (deep): ConvBlock2DTemporal(
+        (spatial_conv): Conv2dBNActivation(
+          (conv): Conv2d(344, 344, kernel_size=(5, 5), stride=(1, 1), padding=(2, 2), bias=False)
+          (bn): BatchNorm2d(344, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (act): Swish()
+        )
+        (temporal_conv): Identity()
+      )
+      (se): SqueezeExcitationTemporal(
+        (fc1): Conv1d(344, 86, kernel_size=(1,), stride=(1,))
+        (bn1): BatchNorm1d(86, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (act1): Swish()
+        (fc2): Conv1d(86, 344, kernel_size=(1,), stride=(1,))
+        (bn2): BatchNorm1d(344, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (act2): Hardsigmoid()
+      )
+      (project): ConvBlock2DTemporal(
+        (spatial_conv): Conv2dBNActivation(
+          (conv): Conv2d(344, 104, kernel_size=(1, 1), stride=(1, 1), bias=False)
+          (bn): BatchNorm2d(104, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (act): Identity()
+        )
+        (temporal_conv): Identity()
+      )
+      (shortcut): Identity()
+    )
+  )
+  (conv7): ConvBlock2DTemporal(
+    (spatial_conv): Conv2dBNActivation(
+      (conv): Conv2d(104, 480, kernel_size=(1, 1), stride=(1, 1), bias=False)
+      (bn): BatchNorm2d(480, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+      (act): Swish()
+    )
+    (temporal_conv): Identity()
+  )
+  (head): Sequential(
+    (0): AdaptiveAvgPool2d(output_size=(1, 1))
+    (1): Flatten(start_dim=1, end_dim=-1)
+    (2): Linear(in_features=480, out_features=480, bias=True)
+    (3): Linear(in_features=480, out_features=2, bias=True)
+  )
+)
+Output shape: torch.Size([1, 2])
