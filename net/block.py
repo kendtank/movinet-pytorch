@@ -4,8 +4,9 @@
 @Author  : Kend
 @FileName: block
 @Software: PyCharm
-@modifier:
+@modifier:   NOTE：改文件只是前期尝试， 目前模型请移步：./movinet_rknn.py
 """
+
 
 """
 不再用 3D Conv，而是 2D backbone + 1D Temporal Conv。

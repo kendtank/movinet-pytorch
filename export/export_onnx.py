@@ -8,27 +8,27 @@
 """
 
 """
-# 结构化剪枝优势：
-# ✅ 真正减少计算量
-# ✅ 真正加速推理
-# ✅ 更好的内存效率
+结构化剪枝优势：
+    ✅ 真正减少计算量
+    ✅ 真正加速推理
+    ✅ 更好的内存效率
 
-# 结构化剪枝劣势：
-# ❌ 实现复杂
-# ❌ 可能影响精度更多
-# ❌ 需要重新训练微调
-# ❌ 对复杂网络结构风险大
+结构化剪枝劣势：
+    ❌ 实现复杂
+    ❌ 可能影响精度更多
+    ❌ 需要重新训练微调
+    ❌ 对复杂网络结构风险大
 
-当前的目标是模型压缩，而非加速
-1. 减少模型大小（已实现：参数减少20%）
-2. 为进一步优化做准备（ONNX转换、TFLite）
-结构化剪枝实现复杂，对MoViNet这样的复杂网络风险较大
+我的目标是模型压缩，而非加速
+    1. 减少模型大小（已实现：参数减少20%）
+    2. 为进一步优化做准备（ONNX转换、TFLite）
+    结构化剪枝实现复杂，对MoViNet这样的复杂网络风险较大
 
 
-MoviNets中使用了一些ONNX不支持的操作。
-Tracing failed sanity checks!
-Tensor-valued Constant nodes differed in value across invocations
-这与模型中的TemporalCGAvgPool3D有关，它在因果模式下维护状态，导致trace不一致。
+原生的MoviNets中使用了一些ONNX不支持的操作。NOTE
+    Tracing failed sanity checks!
+    Tensor-valued Constant nodes differed in value across invocations
+    这与模型中的TemporalCGAvgPool3D有关，它在因果模式下维护状态，导致trace不一致。
 """
 
 import sys
@@ -48,7 +48,6 @@ from net.cfg import build_movinet_a0_cfg
 
 
 """  PyTorch → 剪枝 → 导出ONNX """
-
 def verify_model_output(model):
     """
     验证模型输出
@@ -173,7 +172,7 @@ def prune_model_properly(model, pruning_ratio=0.2):
 
 def export_to_onnx_with_fixes(model, onnx_path='movinet_optimized.onnx'):
     """
-    导出ONNX模型（修复ATen操作问题）
+    导出ONNX模型
     """
     print("4. 导出ONNX模型")
 
@@ -184,7 +183,6 @@ def export_to_onnx_with_fixes(model, onnx_path='movinet_optimized.onnx'):
     # x = torch.randn(1, 3*16, 172, 172)  # B, C*T, H, W
 
     try:
-        # 修复ATen操作的关键：使用更严格的导出参数
         torch.onnx.export(
             model,
             dummy_input,

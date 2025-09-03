@@ -6,7 +6,7 @@ import os
 
 
 def simple_onnx_to_tf():
-    """简化版ONNX到TF转换"""
+    """ONNX到TF转换"""
     print("=== 简化版ONNX到TF转换 ===")
 
     onnx_path = "movinet_optimized.onnx"

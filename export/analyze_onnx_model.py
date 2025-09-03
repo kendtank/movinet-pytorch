@@ -9,8 +9,6 @@
 
 
 import onnx
-from net.movinet import MoViNet
-from net.cfg import build_movinet_a0_cfg
 import os
 
 
